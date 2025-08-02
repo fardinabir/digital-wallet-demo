@@ -1,0 +1,34 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+.vscode/
+tmp
+
+dist/*

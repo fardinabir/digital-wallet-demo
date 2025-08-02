@@ -1,0 +1,5 @@
+golang 1.19.13
+gotestsum 1.12.0
+air 1.60.0
+swag 1.16.3
+golangci-lint 1.61.0

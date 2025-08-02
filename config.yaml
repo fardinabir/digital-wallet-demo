@@ -1,0 +1,11 @@
+ui:
+  url: http://localhost:3000
+swaggerServer:
+  enable: true
+postgreSQL:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: wallet
+  sslmode: disable
