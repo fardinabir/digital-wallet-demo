@@ -6,6 +6,7 @@ import (
 	"github.com/fardinabir/digital-wallet-demo/internal/controller"
 	"github.com/fardinabir/digital-wallet-demo/internal/repository"
 	"github.com/fardinabir/digital-wallet-demo/internal/service"
+	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/fardinabir/digital-wallet-demo/internal/db"
 	"github.com/fardinabir/digital-wallet-demo/internal/model"
@@ -32,6 +33,17 @@ func NewAPI(opts WalletAPIServerOpts) (Server, error) {
 	}
 
 	engine := echo.New()
+
+	allowOrigins := []string{}
+	if opts.Config.SwaggerServer.Enable {
+		allowOrigins = append(allowOrigins, fmt.Sprintf("http://localhost:%d", opts.Config.SwaggerServer.Port))
+	}
+	log.Info("CORS allowed origins: ", allowOrigins)
+	engine.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: allowOrigins,
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
 
 	s := &walletAPIServer{
 		port:   opts.ListenPort,
