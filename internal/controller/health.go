@@ -25,5 +25,10 @@ func NewHealth() HealthHandler {
 // @Success	200	{object}	ResponseData{data=time.Time}
 // @Router		/health [get]
 func (t *healthHandler) Health(c echo.Context) error {
-	return c.JSON(http.StatusOK, ResponseData{Data: time.Now()})
+	return c.JSON(http.StatusOK, ResponseData{
+		Data: map[string]interface{}{
+			"status":    "ok",
+			"timestamp": time.Now(),
+		},
+	})
 }
