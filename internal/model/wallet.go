@@ -20,8 +20,8 @@ type Wallet struct {
 // Transaction represents a wallet transaction
 type Transaction struct {
 	ID              int               `gorm:"primaryKey" json:"id"`
-	SubjectWalletID string            `gorm:"not null;uniqueIndex" json:"subject_wallet_id"`
-	ObjectWalletID  *string           `gorm:"uniqueIndex" json:"object_wallet_id,omitempty"`
+	SubjectWalletID string            `gorm:"not null;" json:"subject_wallet_id"`
+	ObjectWalletID  string            `gorm:"not null;" json:"object_wallet_id,omitempty"`
 	TransactionType TransactionType   `gorm:"not null" json:"transaction_type"`
 	OperationType   OperationType     `gorm:"not null" json:"operation_type"`
 	Amount          int64             `gorm:"not null" json:"amount"` // Amount in cents

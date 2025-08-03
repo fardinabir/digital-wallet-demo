@@ -2,10 +2,8 @@ package controller
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/fardinabir/digital-wallet-demo/internal/db"
@@ -42,38 +40,45 @@ func TestWalletHandler_Create(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "successful_create",
-			createBody: `{"task":"Created Task", "priority":1}`,
+			name:       "successful_create_user_wallet",
+			createBody: `{"user_id":"test-user-001", "acnt_type":"user"}`,
 			want: want{
 				StatusCode: http.StatusCreated,
-				Response:   []byte(`{"data":{"Task":"Created Task", "Priority":1, "Status":"created"}}`),
+				Response:   []byte(`{"data":{"user_id":"test-user-001", "acnt_type":"user", "balance":0, "status":"active"}}`),
 			},
 		},
 		{
-			name:       "successful_create_without_priority",
-			createBody: `{"task":"Created Task"}`,
+			name:       "successful_create_provider_wallet",
+			createBody: `{"user_id":"test-provider-001", "acnt_type":"provider"}`,
+			want: want{
+				StatusCode: http.StatusCreated,
+				Response:   []byte(`{"data":{"user_id":"test-provider-001", "acnt_type":"provider", "balance":0, "status":"active"}}`),
+			},
+		},
+		{
+			name:       "missing_user_id",
+			createBody: `{"acnt_type":"user"}`,
 			want: want{
 				StatusCode: http.StatusBadRequest,
 			},
 		},
 		{
-			name:       "create_with_invalid_priority",
-			createBody: `{"task":"Created Task", "priority":-1}`,
+			name:       "missing_acnt_type",
+			createBody: `{"user_id":"test-user-002"}`,
 			want: want{
 				StatusCode: http.StatusBadRequest,
 			},
 		},
 		{
-			name:       "successful_create_but_with_ignore_status",
-			createBody: `{"task":"Created Task", "priority":2, "status":"done"}`,
+			name:       "invalid_acnt_type",
+			createBody: `{"user_id":"test-user-003", "acnt_type":"invalid"}`,
 			want: want{
-				StatusCode: http.StatusCreated,
-				Response:   []byte(`{"data":{"Task":"Created Task", "Priority":2, "Status":"created"}}`),
+				StatusCode: http.StatusBadRequest,
 			},
 		},
 		{
 			name:       "invalid_request_body",
-			createBody: `{"task":1}`,
+			createBody: `{"user_id":123}`,
 			want: want{
 				StatusCode: http.StatusBadRequest,
 			},
@@ -82,8 +87,11 @@ func TestWalletHandler_Create(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Clean database before each test
+			clearDB(dbInstance, model.Wallet{}, model.Transaction{})
+
 			// Prepare
-			req := httptest.NewRequest(http.MethodPost, "/dummy/target", bytes.NewReader([]byte(tt.createBody)))
+			req := httptest.NewRequest(http.MethodPost, "/wallets", bytes.NewReader([]byte(tt.createBody)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
@@ -102,7 +110,7 @@ func TestWalletHandler_Create(t *testing.T) {
 
 			opts := []cmp.Option{
 				cmpTransformJSON(t),
-				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}),
+				ignoreMapEntires(map[string]any{"created_at": 1, "updated_at": 1, "id": 1}),
 			}
 			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
 				t.Errorf("return value mismatch (-got +want):\n%s", diff)
@@ -112,7 +120,7 @@ func TestWalletHandler_Create(t *testing.T) {
 	}
 }
 
-func TestWalletHandler_Update(t *testing.T) {
+func TestWalletHandler_Deposit(t *testing.T) {
 	type want struct {
 		StatusCode int
 		Response   []byte
@@ -129,101 +137,96 @@ func TestWalletHandler_Update(t *testing.T) {
 	handler := NewWallet(service)
 
 	tests := []struct {
-		name       string
-		createBody string
-		updateBody string
-		updateID   string
-		want       want
-		wantErr    bool
+		name        string
+		setupWallet bool
+		depositBody string
+		want        want
 	}{
 		{
-			name:       "successful_update",
-			createBody: `{"task":"Updated Task", "priority":1}`,
-			updateBody: `{"task":"Updated Task","status":"done"}`,
+			name:        "successful_deposit",
+			setupWallet: true,
+			depositBody: `{"user_id":"test-user-001", "amount":5000, "provider_id":"deposit-provider-master"}`,
 			want: want{
-				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":{"Task":"Updated Task","Status":"done", "Priority":1}}`),
+				StatusCode: http.StatusCreated,
+				Response:   []byte(`{"data":{"subject_wallet_id":"test-user-001", "object_wallet_id":"deposit-provider-master", "transaction_type":"deposit", "operation_type":"credit", "amount":5000, "status":"completed"}}`),
 			},
 		},
 		{
-			name:       "successful_update_with_priority",
-			createBody: `{"task":"Updated Task", "priority":2}`,
-			updateBody: `{"task":"Updated Task","status":"done", "priority":3}`,
+			name:        "deposit_without_provider_id",
+			setupWallet: true,
+			depositBody: `{"user_id":"test-user-001", "amount":3000}`,
 			want: want{
-				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":{"Task":"Updated Task","Status":"done", "Priority":3}}`),
+				StatusCode: http.StatusCreated,
+				Response:   []byte(`{"data":{"subject_wallet_id":"test-user-001", "object_wallet_id":"deposit-provider-master", "transaction_type":"deposit", "operation_type":"credit", "amount":3000, "status":"completed"}}`),
 			},
 		},
 		{
-			name:       "successful_update_with_only_priority",
-			createBody: `{"task":"Updated Task", "priority":1}`,
-			updateBody: `{"priority":2}`,
-			want: want{
-				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":{"Task":"Updated Task","Status":"created", "Priority":2}}`),
-			},
-		},
-		{
-			name:       "update_with_invalid_priority",
-			createBody: `{"task":"Updated Task", "priority":1}`,
-			updateBody: `{"priority":22}`,
+			name:        "missing_user_id",
+			setupWallet: false,
+			depositBody: `{"amount":5000, "provider_id":"deposit-provider-master"}`,
 			want: want{
 				StatusCode: http.StatusBadRequest,
 			},
 		},
 		{
-			name:       "update_with_invalid_status",
-			createBody: `{"task":"Updated Task", "priority":1}`,
-			updateBody: `{"task":"Updated Task","status":"pending"}`,
+			name:        "missing_amount",
+			setupWallet: true,
+			depositBody: `{"user_id":"test-user-001", "provider_id":"deposit-provider-master"}`,
 			want: want{
 				StatusCode: http.StatusBadRequest,
 			},
 		},
 		{
-			name:       "not_found_record",
-			updateID:   "-1",
-			updateBody: `{"task":"Updated Task","status":"done"}`,
+			name:        "negative_amount",
+			setupWallet: true,
+			depositBody: `{"user_id":"test-user-001", "amount":-1000, "provider_id":"deposit-provider-master"}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:        "zero_amount",
+			setupWallet: true,
+			depositBody: `{"user_id":"test-user-001", "amount":0, "provider_id":"deposit-provider-master"}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:        "wallet_not_found",
+			setupWallet: false,
+			depositBody: `{"user_id":"non-existent-user", "amount":5000, "provider_id":"deposit-provider-master"}`,
 			want: want{
 				StatusCode: http.StatusNotFound,
-			},
-		},
-		{
-			name:       "invalid_request_body",
-			updateBody: `{"task":1}`,
-			want: want{
-				StatusCode: http.StatusBadRequest,
-			},
-		},
-		{
-			name:       "invalid_request_parameter",
-			updateID:   "invalid",
-			updateBody: `{"task":"Updated Task","status":"done"}`,
-			want: want{
-				StatusCode: http.StatusBadRequest,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Prepare
-			id := "1"
-			if tt.updateID != "" {
-				id = tt.updateID
-			} else if tt.createBody != "" {
-				id = strconv.Itoa(createTask(t, e, handler, tt.createBody))
+			// Clean database before each test
+			clearDB(dbInstance, model.Wallet{}, model.Transaction{})
+
+			// Setup wallet if needed
+			if tt.setupWallet {
+				createTestWallet(t, dbInstance, "test-user-001", model.User)
+				createTestWalletWithBalance(t, dbInstance, "deposit-provider-master", model.Provider, 1000000) // Provider with sufficient balance
+			}
+			// Always create default provider for tests that might use it
+			if tt.name == "deposit_without_provider_id" && !tt.setupWallet {
+				createTestWallet(t, dbInstance, "test-user-001", model.User)
+				createTestWalletWithBalance(t, dbInstance, "deposit-provider-master", model.Provider, 1000000)
 			}
 
-			req := httptest.NewRequest(http.MethodPut, "/dummy/target", bytes.NewReader([]byte(tt.updateBody)))
+			// Prepare
+			req := httptest.NewRequest(http.MethodPost, "/wallets/deposit", bytes.NewReader([]byte(tt.depositBody)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetPath("/wallets/:id")
-			c.SetParamNames("id")
-			c.SetParamValues(id)
+			c.SetPath("/wallets/deposit")
 
 			// Execute
-			require.NoError(t, handler.Update(c))
+			require.NoError(t, handler.Deposit(c))
 
 			// Assert
 			assert.Equal(t, tt.want.StatusCode, rec.Code)
@@ -235,7 +238,7 @@ func TestWalletHandler_Update(t *testing.T) {
 
 			opts := []cmp.Option{
 				cmpTransformJSON(t),
-				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}),
+				ignoreMapEntires(map[string]any{"created_at": 1, "updated_at": 1, "id": 1}),
 			}
 			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
 				t.Errorf("return value mismatch (-got +want):\n%s", diff)
@@ -245,9 +248,10 @@ func TestWalletHandler_Update(t *testing.T) {
 	}
 }
 
-func TestWalletHandler_Delete(t *testing.T) {
+func TestWalletHandler_Withdraw(t *testing.T) {
 	type want struct {
 		StatusCode int
+		Response   []byte
 	}
 
 	e := echo.New()
@@ -261,58 +265,248 @@ func TestWalletHandler_Delete(t *testing.T) {
 	handler := NewWallet(service)
 
 	tests := []struct {
-		name       string
-		createBody string
-		deleteID   string
-		want       want
-		wantErr    bool
+		name           string
+		setupWallet    bool
+		initialBalance int64
+		withdrawBody   string
+		want           want
 	}{
 		{
-			name:       "successful_delete",
-			createBody: `{"task":"Deleted Task", "priority":1}`,
+			name:           "successful_withdraw",
+			setupWallet:    true,
+			initialBalance: 10000,
+			withdrawBody:   `{"user_id":"test-user-001", "amount":3000, "provider_id":"withdraw-provider-master"}`,
 			want: want{
-				StatusCode: http.StatusNoContent,
+				StatusCode: http.StatusCreated,
+				Response:   []byte(`{"data":{"subject_wallet_id":"test-user-001", "object_wallet_id":"withdraw-provider-master", "transaction_type":"withdraw", "operation_type":"debit", "amount":3000, "status":"completed"}}`),
 			},
 		},
 		{
-			name:     "not_found_record",
-			deleteID: "-1",
+			name:           "insufficient_funds",
+			setupWallet:    true,
+			initialBalance: 1000,
+			withdrawBody:   `{"user_id":"test-user-001", "amount":5000, "provider_id":"withdraw-provider-master"}`,
 			want: want{
-				StatusCode: http.StatusNotFound,
+				StatusCode: http.StatusUnprocessableEntity,
 			},
 		},
 		{
-			name:     "invalid_request_parameter",
-			deleteID: "invalid",
+			name:         "missing_user_id",
+			setupWallet:  false,
+			withdrawBody: `{"amount":3000, "provider_id":"withdraw-provider-master"}`,
 			want: want{
 				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:           "missing_amount",
+			setupWallet:    true,
+			initialBalance: 10000,
+			withdrawBody:   `{"user_id":"test-user-001", "provider_id":"withdraw-provider-master"}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:           "negative_amount",
+			setupWallet:    true,
+			initialBalance: 10000,
+			withdrawBody:   `{"user_id":"test-user-001", "amount":-1000, "provider_id":"withdraw-provider-master"}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:         "wallet_not_found",
+			setupWallet:  false,
+			withdrawBody: `{"user_id":"non-existent-user", "amount":3000, "provider_id":"withdraw-provider-master"}`,
+			want: want{
+				StatusCode: http.StatusNotFound,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Prepare
-			id := "1"
-			if tt.deleteID != "" {
-				id = tt.deleteID
-			} else if tt.createBody != "" {
-				id = strconv.Itoa(createTask(t, e, handler, tt.createBody))
+			// Clean database before each test
+			clearDB(dbInstance, model.Wallet{}, model.Transaction{})
+
+			// Setup wallet if needed
+			if tt.setupWallet {
+				createTestWalletWithBalance(t, dbInstance, "test-user-001", model.User, tt.initialBalance)
+				createTestWalletWithBalance(t, dbInstance, "withdraw-provider-master", model.Provider, 1000000) // Provider with sufficient balance
 			}
 
-			req := httptest.NewRequest(http.MethodDelete, "/dummy/target", nil)
+			// Prepare
+			req := httptest.NewRequest(http.MethodPost, "/wallets/withdraw", bytes.NewReader([]byte(tt.withdrawBody)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetPath("/wallets/:id")
-			c.SetParamNames("id")
-			c.SetParamValues(id)
+			c.SetPath("/wallets/withdraw")
 
 			// Execute
-			require.NoError(t, handler.Delete(c))
+			require.NoError(t, handler.Withdraw(c))
 
 			// Assert
 			assert.Equal(t, tt.want.StatusCode, rec.Code)
+
+			if tt.want.Response == nil {
+				return
+			}
+			got := rec.Body.Bytes()
+
+			opts := []cmp.Option{
+				cmpTransformJSON(t),
+				ignoreMapEntires(map[string]any{"created_at": 1, "updated_at": 1, "id": 1}),
+			}
+			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
+				t.Errorf("return value mismatch (-got +want):\n%s", diff)
+				t.Logf("got:\n%s", string(got))
+			}
+		})
+	}
+}
+
+func TestWalletHandler_Transfer(t *testing.T) {
+	type want struct {
+		StatusCode int
+		Response   []byte
+	}
+
+	e := echo.New()
+	e.Validator = NewCustomValidator()
+	dbInstance, err := db.NewTestDB()
+	require.NoError(t, err)
+	err = db.Migrate(dbInstance)
+	require.NoError(t, err)
+	repository := repository.NewWallet(dbInstance)
+	service := service.NewWallet(repository)
+	handler := NewWallet(service)
+
+	tests := []struct {
+		name         string
+		setupWallets bool
+		fromBalance  int64
+		toBalance    int64
+		transferBody string
+		want         want
+	}{
+		{
+			name:         "successful_transfer",
+			setupWallets: true,
+			fromBalance:  10000,
+			toBalance:    5000,
+			transferBody: `{"from_user_id":"test-user-001", "to_user_id":"test-user-002", "amount":3000}`,
+			want: want{
+				StatusCode: http.StatusCreated,
+				Response:   []byte(`{"data":{"subject_wallet_id":"test-user-001", "object_wallet_id":"test-user-002", "transaction_type":"transfer", "operation_type":"debit", "amount":3000, "status":"completed"}}`),
+			},
+		},
+		{
+			name:         "insufficient_funds",
+			setupWallets: true,
+			fromBalance:  1000,
+			toBalance:    5000,
+			transferBody: `{"from_user_id":"test-user-001", "to_user_id":"test-user-002", "amount":5000}`,
+			want: want{
+				StatusCode: http.StatusUnprocessableEntity,
+			},
+		},
+		{
+			name:         "transfer_to_same_wallet",
+			setupWallets: true,
+			fromBalance:  10000,
+			toBalance:    0,
+			transferBody: `{"from_user_id":"test-user-001", "to_user_id":"test-user-001", "amount":3000}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:         "missing_from_user_id",
+			setupWallets: false,
+			transferBody: `{"to_user_id":"test-user-002", "amount":3000}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:         "missing_to_user_id",
+			setupWallets: false,
+			transferBody: `{"from_user_id":"test-user-001", "amount":3000}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:         "missing_amount",
+			setupWallets: true,
+			fromBalance:  10000,
+			toBalance:    5000,
+			transferBody: `{"from_user_id":"test-user-001", "to_user_id":"test-user-002"}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:         "negative_amount",
+			setupWallets: true,
+			fromBalance:  10000,
+			toBalance:    5000,
+			transferBody: `{"from_user_id":"test-user-001", "to_user_id":"test-user-002", "amount":-1000}`,
+			want: want{
+				StatusCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:         "from_wallet_not_found",
+			setupWallets: false,
+			transferBody: `{"from_user_id":"non-existent-user", "to_user_id":"test-user-002", "amount":3000}`,
+			want: want{
+				StatusCode: http.StatusNotFound,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clean database before each test
+			clearDB(dbInstance, model.Wallet{}, model.Transaction{})
+
+			// Setup wallets if needed
+			if tt.setupWallets {
+				createTestWalletWithBalance(t, dbInstance, "test-user-001", model.User, tt.fromBalance)
+				if tt.name != "transfer_to_same_wallet" {
+					createTestWalletWithBalance(t, dbInstance, "test-user-002", model.User, tt.toBalance)
+				}
+			}
+
+			// Prepare
+			req := httptest.NewRequest(http.MethodPost, "/wallets/transfer", bytes.NewReader([]byte(tt.transferBody)))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			c.SetPath("/wallets/transfer")
+
+			// Execute
+			require.NoError(t, handler.Transfer(c))
+
+			// Assert
+			assert.Equal(t, tt.want.StatusCode, rec.Code)
+
+			if tt.want.Response == nil {
+				return
+			}
+			got := rec.Body.Bytes()
+
+			opts := []cmp.Option{
+				cmpTransformJSON(t),
+				ignoreMapEntires(map[string]any{"created_at": 1, "updated_at": 1, "id": 1}),
+			}
+			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
+				t.Errorf("return value mismatch (-got +want):\n%s", diff)
+				t.Logf("got:\n%s", string(got))
+			}
 		})
 	}
 }
@@ -334,30 +528,32 @@ func TestWalletHandler_Find(t *testing.T) {
 	handler := NewWallet(service)
 
 	tests := []struct {
-		name       string
-		createBody string
-		findID     string
-		want       want
-		wantErr    bool
+		name        string
+		setupWallet bool
+		userID      string
+		want        want
 	}{
 		{
-			name:       "successful_find",
-			createBody: `{"task":"Found Task", "priority":1}`,
+			name:        "successful_find",
+			setupWallet: true,
+			userID:      "test-user-001",
 			want: want{
 				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":{"Task":"Found Task","Status":"created", "Priority":1}}`),
+				Response:   []byte(`{"data":{"wallet":{"user_id":"test-user-001", "acnt_type":"user", "balance":10000, "status":"active"}, "transactions":[]}}`),
 			},
 		},
 		{
-			name:   "not_found",
-			findID: "-1",
+			name:        "wallet_not_found",
+			setupWallet: false,
+			userID:      "non-existent-user",
 			want: want{
 				StatusCode: http.StatusNotFound,
 			},
 		},
 		{
-			name:   "invalid_request_parameter",
-			findID: "invalid",
+			name:        "missing_user_id",
+			setupWallet: false,
+			userID:      "",
 			want: want{
 				StatusCode: http.StatusBadRequest,
 			},
@@ -366,21 +562,22 @@ func TestWalletHandler_Find(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Prepare
-			id := "1"
-			if tt.findID != "" {
-				id = tt.findID
-			} else if tt.createBody != "" {
-				id = strconv.Itoa(createTask(t, e, handler, tt.createBody))
+			// Clean database before each test
+			clearDB(dbInstance, model.Wallet{}, model.Transaction{})
+
+			// Setup wallet if needed
+			if tt.setupWallet {
+				createTestWalletWithBalance(t, dbInstance, "test-user-001", model.User, 10000)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/dummy/target", nil)
+			// Prepare
+			req := httptest.NewRequest(http.MethodGet, "/wallets/"+tt.userID, nil)
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			c.SetPath("/wallets/:id")
-			c.SetParamNames("id")
-			c.SetParamValues(id)
+			c.SetPath("/wallets/:user_id")
+			c.SetParamNames("user_id")
+			c.SetParamValues(tt.userID)
 
 			// Execute
 			require.NoError(t, handler.Find(c))
@@ -395,7 +592,7 @@ func TestWalletHandler_Find(t *testing.T) {
 
 			opts := []cmp.Option{
 				cmpTransformJSON(t),
-				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}),
+				ignoreMapEntires(map[string]any{"created_at": 1, "updated_at": 1, "id": 1}),
 			}
 			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
 				t.Errorf("return value mismatch (-got +want):\n%s", diff)
@@ -405,113 +602,22 @@ func TestWalletHandler_Find(t *testing.T) {
 	}
 }
 
-func TestWalletHandler_FindAll(t *testing.T) {
-	type want struct {
-		StatusCode int
-		Response   []byte
-	}
-
-	e := echo.New()
-	e.Validator = NewCustomValidator()
-	dbInstance, err := db.NewTestDB()
-	require.NoError(t, err)
-	err = db.Migrate(dbInstance)
-	clearDB(dbInstance, model.Wallet{})
-	require.NoError(t, err)
-	repository := repository.NewWallet(dbInstance)
-	service := service.NewWallet(repository)
-	handler := NewWallet(service)
-
-	tests := []struct {
-		name       string
-		createBody []string
-		want       want
-	}{
-		{
-			name: "no_wallets_found",
-			want: want{
-				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":[]}`), // Expecting an empty array
-			},
-		},
-		{
-			name:       "single_wallets_found",
-			createBody: []string{`{"task":"Task 1", "priority":1}`},
-			want: want{
-				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":[{"Task":"Task 1","Priority":1,"Status":"created"}]}`),
-			},
-		},
-		{
-			name:       "multiple_wallets_found",
-			createBody: []string{`{"task":"Task 2", "priority":2}`},
-			want: want{
-				StatusCode: http.StatusOK,
-				Response:   []byte(`{"data":[{"Task":"Task 2","Priority":2,"Status":"created"},{"Task":"Task 1","Priority":1,"Status":"created"}]}`),
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create a task if needed for the current test case
-			for _, ct := range tt.createBody {
-				createTask(t, e, handler, ct)
-			}
-
-			req := httptest.NewRequest(http.MethodGet, "/wallets", nil)
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-			c.SetPath("/wallets")
-
-			// Execute
-			require.NoError(t, handler.FindAll(c))
-
-			// Assert
-			assert.Equal(t, tt.want.StatusCode, rec.Code)
-
-			if tt.want.Response == nil {
-				return
-			}
-			got := rec.Body.Bytes()
-
-			opts := []cmp.Option{
-				cmpTransformJSON(t),
-				ignoreMapEntires(map[string]any{"CreatedAt": 1, "UpdatedAt": 1, "ID": 1}),
-			}
-			if diff := cmp.Diff(got, tt.want.Response, opts...); diff != "" {
-				t.Errorf("return value mismatch (-got +want):\n%s", diff)
-				t.Logf("got:\n%s", string(got))
-			}
-		})
-	}
-}
-
+// Helper functions
 func clearDB(db *gorm.DB, models ...interface{}) {
 	for _, model := range models {
 		db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(model)
 	}
 }
 
-func createTask(t *testing.T, e *echo.Echo, handler WalletHandler, body string) int {
-	req := httptest.NewRequest(http.MethodPost, "/wallets", bytes.NewReader([]byte(body)))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := handler.Create(c)
+func createTestWallet(t *testing.T, db *gorm.DB, userID string, acntType model.AcntType) {
+	wallet := model.NewWallet(userID, acntType)
+	err := db.Create(wallet).Error
 	require.NoError(t, err)
+}
 
-	type response struct {
-		Data   model.Wallet
-		Status string
-	}
-
-	var res response
-	err = json.Unmarshal(rec.Body.Bytes(), &res)
-	require.NoError(t, err, "Failed to json.Unmarshal err: %s", err)
-	require.NotEmpty(t, res.Data.ID)
-
-	return res.Data.ID
+func createTestWalletWithBalance(t *testing.T, db *gorm.DB, userID string, acntType model.AcntType, balance int64) {
+	wallet := model.NewWallet(userID, acntType)
+	wallet.Balance = balance
+	err := db.Create(wallet).Error
+	require.NoError(t, err)
 }

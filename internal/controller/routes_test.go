@@ -31,11 +31,11 @@ func TestRegister(t *testing.T) {
 		expectedCode int
 	}{
 		{"Health_Check", http.MethodGet, "/api/v1/health", http.StatusOK},
-		{"Create_Wallet_without_body", http.MethodPost, "/api/v1/wallets", http.StatusBadRequest}, // Assuming no body is sent, should return BadRequest
-		{"Get_all_Wallets", http.MethodGet, "/api/v1/wallets", http.StatusOK},
-		{"Get_non-existent_Wallet", http.MethodGet, "/api/v1/wallets/1", http.StatusNotFound},       // Assuming no wallet with id 1 exists
-		{"Update_Wallet_without_body", http.MethodPut, "/api/v1/wallets/1", http.StatusNotFound},    // Assuming no body is sent, should return BadRequest
-		{"Delete_non-existent_Wallet", http.MethodDelete, "/api/v1/wallets/1", http.StatusNotFound}, // Assuming no wallet with id 1 exists
+		{"Create_Wallet_without_body", http.MethodPost, "/api/v1/wallets", http.StatusBadRequest},             // Assuming no body is sent, should return BadRequest
+		{"Get_non-existent_Wallet", http.MethodGet, "/api/v1/wallets/non-existent-user", http.StatusNotFound}, // Assuming no wallet with this user_id exists
+		{"Deposit_without_body", http.MethodPost, "/api/v1/wallets/deposit", http.StatusBadRequest},           // Assuming no body is sent, should return BadRequest
+		{"Withdraw_without_body", http.MethodPost, "/api/v1/wallets/withdraw", http.StatusBadRequest},         // Assuming no body is sent, should return BadRequest
+		{"Transfer_without_body", http.MethodPost, "/api/v1/wallets/transfer", http.StatusBadRequest},         // Assuming no body is sent, should return BadRequest
 	}
 
 	for _, tt := range tests {

@@ -43,6 +43,12 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 		return nil, err
 	}
 
+	// Set default provider if not provided
+	defaultProviderID := "deposit-provider-master"
+	if providerID == nil {
+		providerID = &defaultProviderID
+	}
+
 	// Find or get provider wallet
 	providerWallet, err := t.walletRepository.FindProviderWallet(*providerID)
 	if err != nil {
@@ -64,7 +70,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 	// Create debit transaction for provider
 	debitTxn := &model.Transaction{
 		SubjectWalletID: providerWallet.UserID,
-		ObjectWalletID:  &userWallet.UserID,
+		ObjectWalletID:  userWallet.UserID,
 		TransactionType: model.Deposit,
 		OperationType:   model.Debit,
 		Amount:          amountCents,
@@ -78,7 +84,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 	// Create credit transaction for user
 	creditTxn := &model.Transaction{
 		SubjectWalletID: userWallet.UserID,
-		ObjectWalletID:  &providerWallet.UserID,
+		ObjectWalletID:  providerWallet.UserID,
 		TransactionType: model.Deposit,
 		OperationType:   model.Credit,
 		Amount:          amountCents,
@@ -127,6 +133,12 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 		return nil, model.ErrInsufficientFunds
 	}
 
+	// Set default provider if not provided
+	defaultProviderID := "withdraw-provider-master"
+	if providerID == nil {
+		providerID = &defaultProviderID
+	}
+
 	// Find or get provider wallet
 	providerWallet, err := t.walletRepository.FindProviderWallet(*providerID)
 	if err != nil {
@@ -148,7 +160,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 	// Create debit transaction for user
 	debitTxn := &model.Transaction{
 		SubjectWalletID: userWallet.UserID,
-		ObjectWalletID:  &providerWallet.UserID,
+		ObjectWalletID:  providerWallet.UserID,
 		TransactionType: model.Withdraw,
 		OperationType:   model.Debit,
 		Amount:          amountCents,
@@ -162,7 +174,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 	// Create credit transaction for provider
 	creditTxn := &model.Transaction{
 		SubjectWalletID: providerWallet.UserID,
-		ObjectWalletID:  &userWallet.UserID,
+		ObjectWalletID:  userWallet.UserID,
 		TransactionType: model.Withdraw,
 		OperationType:   model.Credit,
 		Amount:          amountCents,
@@ -232,7 +244,7 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 	// Create debit transaction for sender
 	debitTxn := &model.Transaction{
 		SubjectWalletID: fromWallet.UserID,
-		ObjectWalletID:  &toWallet.UserID,
+		ObjectWalletID:  toWallet.UserID,
 		TransactionType: model.Transfer,
 		OperationType:   model.Debit,
 		Amount:          amountCents,
@@ -246,7 +258,7 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 	// Create credit transaction for receiver
 	creditTxn := &model.Transaction{
 		SubjectWalletID: toWallet.UserID,
-		ObjectWalletID:  &fromWallet.UserID,
+		ObjectWalletID:  fromWallet.UserID,
 		TransactionType: model.Transfer,
 		OperationType:   model.Credit,
 		Amount:          amountCents,
