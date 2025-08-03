@@ -1,5 +1,3 @@
-ui:
-  url: http://localhost:3000
 swaggerServer:
   enable: true
 postgreSQL:

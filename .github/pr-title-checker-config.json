@@ -5,7 +5,7 @@
     },
     "CHECKS": {
       "prefixes": ["[Bot] docs: "],
-      "regexp": "^(feat|fix|docs|test|ci|chore)!?(\\(.*\\))?!?:.*"
+      "regexp": "^(feat|fix|docs|test|ci|chore|build)!?(\\(.*\\))?!?:.*"
     },
     "MESSAGES": {
       "success": "PR title is valid",

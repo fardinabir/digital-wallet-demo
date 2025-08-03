@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+README.md
+DATABASE_*.md
+
+# CI/CD
+.github/
+.circleci/
+.octocov.yml
+
+# Development files
+.tool-versions
+.golangci.yaml
+.goreleaser.yaml
+gitconfig
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build artifacts
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+*_test.go
+coverage.out
+
+# Local config (keep docker config)
+config.yaml
+config.test.yaml
+
+# Assignment file
+*.pdf
