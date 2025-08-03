@@ -70,7 +70,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 		Amount:          amountCents,
 		Status:          model.Completed,
 	}
-	if err := t.walletRepository.CreateTransactionWithTx(tx, debitTxn); err != nil {
+	if err := t.walletRepository.InsertTransaction(tx, debitTxn); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 		Amount:          amountCents,
 		Status:          model.Completed,
 	}
-	if err := t.walletRepository.CreateTransactionWithTx(tx, creditTxn); err != nil {
+	if err := t.walletRepository.InsertTransaction(tx, creditTxn); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 		Amount:          amountCents,
 		Status:          model.Completed,
 	}
-	if err := t.walletRepository.CreateTransactionWithTx(tx, debitTxn); err != nil {
+	if err := t.walletRepository.InsertTransaction(tx, debitTxn); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 		Amount:          amountCents,
 		Status:          model.Completed,
 	}
-	if err := t.walletRepository.CreateTransactionWithTx(tx, creditTxn); err != nil {
+	if err := t.walletRepository.InsertTransaction(tx, creditTxn); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 		Amount:          amountCents,
 		Status:          model.Completed,
 	}
-	if err := t.walletRepository.CreateTransactionWithTx(tx, debitTxn); err != nil {
+	if err := t.walletRepository.InsertTransaction(tx, debitTxn); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 		Amount:          amountCents,
 		Status:          model.Completed,
 	}
-	if err := t.walletRepository.CreateTransactionWithTx(tx, creditTxn); err != nil {
+	if err := t.walletRepository.InsertTransaction(tx, creditTxn); err != nil {
 		tx.Rollback()
 		return nil, err
 	}

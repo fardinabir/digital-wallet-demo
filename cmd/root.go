@@ -51,6 +51,9 @@ func initConfig() {
 	} else {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("config")
+		// Add project root path since this file is in cmd/ subdirectory
+		viper.AddConfigPath("../")
+		viper.AddConfigPath(".")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
