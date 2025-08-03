@@ -21,6 +21,8 @@ issues:
     - path: _test.go
       linters:
         - dupl
+  exclude-dirs:
+    - docs
   max-issues-per-linter: 0
   max-same-issues: 0
 
