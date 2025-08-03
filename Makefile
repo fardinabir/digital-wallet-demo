@@ -22,25 +22,13 @@ override LDFLAGS += \
   -X ${COMMON_PACKAGE}.buildDate=${BUILD_DATE} \
   -X ${COMMON_PACKAGE}.gitCommit=${GIT_COMMIT} \
 
-.PHONY: cli
-cli:
-	GOOS=${HOST_OS} GOARCH=${HOST_ARCH} make cli-local
-
-.PHONY: cli-local
-cli-local:
-	GODEBUG="tarinsecurepath=0,zipinsecurepath=0" go build -gcflags="all=-N -l" $(COVERAGE_FLAG) -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${CLI_NAME} ./
-
-.PHONY: ui
-ui:
-	cd ui && yarn build
-
-.PHONY: dep-backend-local
-dep-backend-local:
-	go mod download
-
 .PHONY: migrate
 migrate:
 	go run main.go migrate --config config.yaml
+
+.PHONY: migrate-test
+migrate-test:
+	go run main.go migrate --config config.test.yaml
 
 .PHONY: reset-db
 reset-db:
@@ -53,10 +41,6 @@ reset-test-db:
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "DROP DATABASE IF EXISTS wallet_test;"
 	PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "CREATE DATABASE wallet_test WITH TEMPLATE = template0 OWNER = postgres ENCODING = 'UTF8';"
 	make migrate-test
-
-.PHONY: migrate-test
-migrate-test:
-	go run main.go migrate --config config.test.yaml
 
 .PHONY: docker-up
 docker-up:
@@ -73,10 +57,6 @@ docker-clean:
 .PHONY: serve-backend
 serve:
 	go run main.go server --config config.yaml
-
-.PHONY: dep-ui-local
-dep-ui-local:
-	cd ui && yarn install
 
 .PHONY: lint
 lint:
