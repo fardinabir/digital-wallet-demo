@@ -33,8 +33,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - CONFIG_FILE=config.yaml
-    command: ["/bin/sh", "-c", "./main migrate --config config.yaml && ./main server --config config.yaml"]
+      - CONFIG_FILE=config.docker.yaml
+    command: ["/bin/sh", "-c", "./main migrate --config config.docker.yaml && ./main server --config config.docker.yaml"]
     networks:
       - wallet-network
     restart: unless-stopped

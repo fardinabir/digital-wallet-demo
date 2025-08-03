@@ -12,7 +12,7 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/main .
-COPY --from=builder /app/config.yaml .
+COPY --from=builder /app/config.docker.yaml .
 COPY --from=builder /app/migrations ./migrations/
 
 EXPOSE 8080
