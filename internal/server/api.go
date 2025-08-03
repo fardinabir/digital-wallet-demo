@@ -6,19 +6,18 @@ import (
 	"github.com/fardinabir/digital-wallet-demo/internal/controller"
 	"github.com/fardinabir/digital-wallet-demo/internal/repository"
 	"github.com/fardinabir/digital-wallet-demo/internal/service"
+	"github.com/fardinabir/digital-wallet-demo/internal/utils"
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/fardinabir/digital-wallet-demo/internal/db"
 	"github.com/fardinabir/digital-wallet-demo/internal/model"
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 // WalletAPIServerOpts is the options for the WalletAPIServer
 type WalletAPIServerOpts struct {
 	ListenPort int
-	db         *gorm.DB
 	Config     model.Config
 }
 
@@ -26,6 +25,9 @@ type WalletAPIServerOpts struct {
 func NewAPI(opts WalletAPIServerOpts) (Server, error) {
 	logger := log.NewEntry(log.StandardLogger())
 	log.SetFormatter(&log.JSONFormatter{})
+
+	// Initialize global logger
+	utils.InitLogger(logger)
 
 	dbInstance, err := db.New(opts.Config.PostgreSQL)
 	if err != nil {

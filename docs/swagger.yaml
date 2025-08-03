@@ -1,0 +1,384 @@
+basePath: /api/v1
+definitions:
+  controller.CreateRequest:
+    properties:
+      acnt_type:
+        $ref: '#/definitions/model.AcntType'
+      user_id:
+        type: string
+    required:
+    - acnt_type
+    - user_id
+    type: object
+  controller.DepositRequest:
+    properties:
+      amount:
+        type: integer
+      provider_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - amount
+    - user_id
+    type: object
+  controller.Error:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  controller.ResponseData:
+    properties:
+      data:
+        description: Data is the response data.
+    type: object
+  controller.ResponseError:
+    properties:
+      errors:
+        description: Errors is the response errors.
+        items:
+          $ref: '#/definitions/controller.Error'
+        type: array
+    type: object
+  controller.TransferRequest:
+    properties:
+      amount:
+        type: integer
+      from_user_id:
+        type: string
+      to_user_id:
+        type: string
+    required:
+    - amount
+    - from_user_id
+    - to_user_id
+    type: object
+  controller.WalletResponse:
+    properties:
+      transactions:
+        items:
+          $ref: '#/definitions/model.Transaction'
+        type: array
+      wallet:
+        $ref: '#/definitions/model.Wallet'
+    type: object
+  controller.WithdrawRequest:
+    properties:
+      amount:
+        type: integer
+      provider_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - amount
+    - user_id
+    type: object
+  model.AcntType:
+    enum:
+    - user
+    - provider
+    type: string
+    x-enum-varnames:
+    - User
+    - Provider
+  model.OperationType:
+    enum:
+    - debit
+    - credit
+    type: string
+    x-enum-varnames:
+    - Debit
+    - Credit
+  model.Status:
+    enum:
+    - active
+    - inactive
+    - suspended
+    type: string
+    x-enum-varnames:
+    - Active
+    - Inactive
+    - Suspended
+  model.Transaction:
+    properties:
+      amount:
+        description: Amount in cents
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      object_wallet_id:
+        type: string
+      operation_type:
+        $ref: '#/definitions/model.OperationType'
+      status:
+        $ref: '#/definitions/model.TransactionStatus'
+      subject_wallet_id:
+        type: string
+      transaction_type:
+        $ref: '#/definitions/model.TransactionType'
+      updated_at:
+        type: string
+    type: object
+  model.TransactionStatus:
+    enum:
+    - pending
+    - completed
+    - failed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - Pending
+    - Completed
+    - Failed
+    - Cancelled
+  model.TransactionType:
+    enum:
+    - deposit
+    - withdraw
+    - transfer
+    type: string
+    x-enum-varnames:
+    - Deposit
+    - Withdraw
+    - Transfer
+  model.Wallet:
+    properties:
+      acnt_type:
+        $ref: '#/definitions/model.AcntType'
+      balance:
+        description: Balance in cents
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      status:
+        $ref: '#/definitions/model.Status'
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a server for digital-wallet-demonstration.
+  license:
+    name: Apache 2.0
+  title: digital-wallet-demonstration API
+  version: 0.0.1
+paths:
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Health check
+      tags:
+      - health
+  /wallets:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: json
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Wallet'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: Create a new wallet
+      tags:
+      - wallets
+  /wallets/{user_id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  $ref: '#/definitions/controller.WalletResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: View wallet balance & transaction history
+      tags:
+      - wallets
+  /wallets/deposit:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Deposit request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.DepositRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Transaction'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: Deposit money to wallet
+      tags:
+      - wallets
+  /wallets/transfer:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Transfer request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.TransferRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Transaction'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: Transfer money between wallets
+      tags:
+      - wallets
+  /wallets/withdraw:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Withdraw request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.WithdrawRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.Transaction'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: Withdraw money from wallet
+      tags:
+      - wallets
+schemes:
+- http
+swagger: "2.0"

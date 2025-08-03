@@ -6,6 +6,7 @@ import (
 
 	"github.com/fardinabir/digital-wallet-demo/internal/model"
 	"github.com/fardinabir/digital-wallet-demo/internal/repository"
+	"github.com/fardinabir/digital-wallet-demo/internal/utils"
 )
 
 // Wallet is the service for the wallet endpoint.
@@ -27,7 +28,12 @@ func NewWallet(wr repository.Wallet) Wallet {
 }
 
 func (t *wallet) Create(wallet *model.Wallet) error {
-	return t.walletRepository.Create(wallet)
+	err := t.walletRepository.Create(wallet)
+	if err != nil {
+		utils.LogError("Failed to create wallet", err)
+		return err
+	}
+	return nil
 }
 
 func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.Transaction, error) {
@@ -40,6 +46,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 	// Find user wallet
 	userWallet, err := t.walletRepository.FindByUserID(userID)
 	if err != nil {
+		utils.LogError("User wallet not found for deposit", err)
 		return nil, err
 	}
 
@@ -52,6 +59,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 	// Find or get provider wallet
 	providerWallet, err := t.walletRepository.FindProviderWallet(*providerID)
 	if err != nil {
+		utils.LogError("Provider wallet not found for deposit", err)
 		return nil, errors.New("deposit provider wallet not found")
 	}
 
@@ -77,6 +85,7 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 		Status:          model.Completed,
 	}
 	if err := t.walletRepository.InsertTransaction(tx, debitTxn); err != nil {
+		utils.LogError("Failed to insert debit transaction for deposit", err)
 		tx.Rollback()
 		return nil, err
 	}
@@ -91,23 +100,27 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 		Status:          model.Completed,
 	}
 	if err := t.walletRepository.InsertTransaction(tx, creditTxn); err != nil {
+		utils.LogError("Failed to insert credit transaction for deposit", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Update wallet balances
 	if err := t.walletRepository.UpdateWalletBalance(tx, providerWallet.ID, amountCents, false); err != nil {
+		utils.LogError("Failed to update provider wallet balance for deposit", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	if err := t.walletRepository.UpdateWalletBalance(tx, userWallet.ID, amountCents, true); err != nil {
+		utils.LogError("Failed to update user wallet balance for deposit", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
+		utils.LogError("Failed to commit deposit transaction", err)
 		return nil, err
 	}
 
@@ -125,6 +138,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 	// Find user wallet
 	userWallet, err := t.walletRepository.FindByUserID(userID)
 	if err != nil {
+		utils.LogError("User wallet not found for withdraw", err)
 		return nil, err
 	}
 
@@ -142,6 +156,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 	// Find or get provider wallet
 	providerWallet, err := t.walletRepository.FindProviderWallet(*providerID)
 	if err != nil {
+		utils.LogError("Provider wallet not found for withdraw", err)
 		return nil, errors.New("withdraw provider wallet not found")
 	}
 
@@ -167,6 +182,7 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 		Status:          model.Completed,
 	}
 	if err := t.walletRepository.InsertTransaction(tx, debitTxn); err != nil {
+		utils.LogError("Failed to insert debit transaction for withdraw", err)
 		tx.Rollback()
 		return nil, err
 	}
@@ -181,23 +197,27 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 		Status:          model.Completed,
 	}
 	if err := t.walletRepository.InsertTransaction(tx, creditTxn); err != nil {
+		utils.LogError("Failed to insert credit transaction for withdraw", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Update wallet balances
 	if err := t.walletRepository.UpdateWalletBalance(tx, userWallet.ID, amountCents, false); err != nil {
+		utils.LogError("Failed to update user wallet balance for withdraw", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	if err := t.walletRepository.UpdateWalletBalance(tx, providerWallet.ID, amountCents, true); err != nil {
+		utils.LogError("Failed to update provider wallet balance for withdraw", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
+		utils.LogError("Failed to commit withdraw transaction", err)
 		return nil, err
 	}
 
@@ -215,18 +235,20 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 	// Find sender wallet to check balance
 	fromWallet, err := t.walletRepository.FindByUserID(fromUserID)
 	if err != nil {
-		return nil, err
-	}
-
-	// Find receiver wallet to get UserID
-	toWallet, err := t.walletRepository.FindByUserID(toUserID)
-	if err != nil {
+		utils.LogError("Sender wallet not found for transfer", err)
 		return nil, err
 	}
 
 	// Check balance
 	if fromWallet.Balance < amountCents {
 		return nil, model.ErrInsufficientFunds
+	}
+
+	// Find receiver wallet
+	toWallet, err := t.walletRepository.FindByUserID(toUserID)
+	if err != nil {
+		utils.LogError("Receiver wallet not found for transfer", err)
+		return nil, err
 	}
 
 	// Begin database transaction
@@ -251,6 +273,7 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 		Status:          model.Completed,
 	}
 	if err := t.walletRepository.InsertTransaction(tx, debitTxn); err != nil {
+		utils.LogError("Failed to insert debit transaction for transfer", err)
 		tx.Rollback()
 		return nil, err
 	}
@@ -265,23 +288,27 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 		Status:          model.Completed,
 	}
 	if err := t.walletRepository.InsertTransaction(tx, creditTxn); err != nil {
+		utils.LogError("Failed to insert credit transaction for transfer", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Update wallet balances
 	if err := t.walletRepository.UpdateWalletBalance(tx, fromWallet.ID, amountCents, false); err != nil {
+		utils.LogError("Failed to update sender wallet balance for transfer", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	if err := t.walletRepository.UpdateWalletBalance(tx, toWallet.ID, amountCents, true); err != nil {
+		utils.LogError("Failed to update receiver wallet balance for transfer", err)
 		tx.Rollback()
 		return nil, err
 	}
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
+		utils.LogError("Failed to commit transfer transaction", err)
 		return nil, err
 	}
 
@@ -290,18 +317,20 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 }
 
 func (t *wallet) GetWalletWithTransactions(userID string) (*model.Wallet, []model.Transaction, error) {
-	// Find wallet by user ID
+	// Get wallet
 	wallet, err := t.walletRepository.FindByUserID(userID)
 	if err != nil {
+		utils.LogError("Wallet not found", err)
 		return nil, nil, err
 	}
 
-	// Get transactions for this wallet using UserID
+	// Get transactions
 	filters := map[string]interface{}{
 		"subject_wallet_id": wallet.UserID,
 	}
 	transactions, err := t.walletRepository.FindAllTransactions(filters)
 	if err != nil {
+		utils.LogError("Failed to retrieve transactions", err)
 		return nil, nil, err
 	}
 
