@@ -61,7 +61,7 @@ func NewAPI(opts WalletAPIServerOpts) (Server, error) {
 
 // initWalletController creates and configures the wallet handler with its dependencies
 //
-//	Repository -> Service -> Controller
+//	Repository ====> Service =====> Controller
 //
 // It follows the CSR dependency injection pattern
 func (s *walletAPIServer) initWalletController() controller.WalletHandler {

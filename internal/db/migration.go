@@ -7,7 +7,7 @@ import (
 
 // Migrate runs the auto-migration for the database
 func Migrate(db *gorm.DB) error {
-	if err := db.AutoMigrate(&model.Wallet{}); err != nil {
+	if err := db.AutoMigrate(&model.Wallet{}, &model.Transaction{}); err != nil {
 		return err
 	}
 	return nil

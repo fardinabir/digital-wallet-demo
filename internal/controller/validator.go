@@ -22,9 +22,12 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 func NewCustomValidator() *CustomValidator {
 	v := validator.New()
 
-	// Register the custom validation for Priority
-	_ = v.RegisterValidation("validPriority", model.IsValidPriority)
-	_ = v.RegisterValidation("validStatus", model.IsValidStatus)
+	// Register the custom validation for wallet system
+	_ = v.RegisterValidation("validWalletStatus", model.IsValidStatus)
+	_ = v.RegisterValidation("validTransactionType", model.IsValidTransactionType)
+	_ = v.RegisterValidation("validTransactionStatus", model.IsValidTransactionStatus)
+	_ = v.RegisterValidation("validAcntType", model.IsValidAcntType)
+	_ = v.RegisterValidation("validOperationType", model.IsValidOperationType)
 
 	return &CustomValidator{validator: v}
 }

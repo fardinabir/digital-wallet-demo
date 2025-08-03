@@ -8,9 +8,9 @@ func InitRoutes(api *echo.Group, controller WalletHandler) {
 	wallet := api.Group("/wallets")
 	{
 		wallet.POST("", controller.Create)
-		wallet.GET("", controller.FindAll)
-		wallet.GET("/:id", controller.Find)
-		wallet.PUT("/:id", controller.Update)
-		wallet.DELETE("/:id", controller.Delete)
+		wallet.POST("/deposit", controller.Deposit)
+		wallet.POST("/withdraw", controller.Withdraw)
+		wallet.POST("/transfer", controller.Transfer)
+		wallet.GET("/:user_id", controller.Find)
 	}
 }

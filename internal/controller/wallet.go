@@ -12,10 +12,10 @@ import (
 // WalletHandler is the request handler for the wallet endpoint.
 type WalletHandler interface {
 	Create(c echo.Context) error
-	Update(c echo.Context) error
-	Delete(c echo.Context) error
+	Deposit(c echo.Context) error
+	Withdraw(c echo.Context) error
+	Transfer(c echo.Context) error
 	Find(c echo.Context) error
-	FindAll(c echo.Context) error
 }
 
 type walletHandler struct {
@@ -30,18 +30,43 @@ func NewWallet(s service.Wallet) WalletHandler {
 
 // CreateRequest is the request parameter for creating a new wallet
 type CreateRequest struct {
-	Task     string         `json:"task" validate:"required"`
-	Priority model.Priority `json:"priority" validate:"required,validPriority"`
+	UserID   int            `json:"user_id" validate:"required,gt=0"`
+	AcntType model.AcntType `json:"acnt_type" validate:"required,validAcntType"`
 }
 
-// adding test comments
+// DepositRequest represents the request for deposit operation
+type DepositRequest struct {
+	WalletID   int    `json:"wallet_id" validate:"required,gt=0"`
+	Amount     string `json:"amount" validate:"required"`
+	ProviderID *int   `json:"provider_id,omitempty"`
+}
+
+// WithdrawRequest represents the request for withdraw operation
+type WithdrawRequest struct {
+	WalletID   int    `json:"wallet_id" validate:"required,gt=0"`
+	Amount     string `json:"amount" validate:"required"`
+	ProviderID *int   `json:"provider_id,omitempty"`
+}
+
+// TransferRequest represents the request for transfer operation
+type TransferRequest struct {
+	WalletID   int    `json:"wallet_id" validate:"required,gt=0"`
+	ReceiverID int    `json:"receiver_id" validate:"required,gt=0"`
+	Amount     string `json:"amount" validate:"required"`
+}
+
+// WalletResponse represents wallet with transaction history
+type WalletResponse struct {
+	Wallet       *model.Wallet       `json:"wallet"`
+	Transactions []model.Transaction `json:"transactions"`
+}
 
 // @Summary	Create a new wallet
 // @Tags		wallets
 // @Accept		json
 // @Produce	json
 // @Param		request	body		CreateRequest	true	"json"
-// @Success	201		{object}	ResponseError{data=model.Wallet}
+// @Success	201		{object}	ResponseData{data=model.Wallet}
 // @Failure	400		{object}	ResponseError
 // @Failure	500		{object}	ResponseError
 // @Router		/wallets [post]
@@ -52,8 +77,8 @@ func (t *walletHandler) Create(c echo.Context) error {
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
 	}
 
-	wallet, err := t.service.Create(req.Task, req.Priority)
-	if err != nil {
+	wallet := model.NewWallet(req.UserID, req.AcntType)
+	if err := t.service.Create(wallet); err != nil {
 		return c.JSON(http.StatusInternalServerError,
 			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
 	}
@@ -61,98 +86,125 @@ func (t *walletHandler) Create(c echo.Context) error {
 	return c.JSON(http.StatusCreated, ResponseData{Data: wallet})
 }
 
-// UpdateRequest is the request parameter for updating a wallet
-type UpdateRequest struct {
-	UpdateRequestBody
-	UpdateRequestPath
-}
-
-// UpdateRequestBody is the request body for updating a wallet
-type UpdateRequestBody struct {
-	Task     string         `json:"task,omitempty"`
-	Status   model.Status   `json:"status,omitempty" validate:"validStatus"`
-	Priority model.Priority `json:"priority,omitempty" validate:"validPriority"`
-}
-
-// UpdateRequestPath is the request parameter for updating a wallet
-type UpdateRequestPath struct {
-	ID int `param:"id" validate:"required"`
-}
-
-// @Summary	Update a wallet
+// @Summary	Deposit money to wallet
 // @Tags		wallets
 // @Accept		json
 // @Produce	json
-// @Param		body	body		UpdateRequestBody	true	"body"
-// @Param		path	path		UpdateRequestPath	false	"path"
-// @Success	201		{object}	ResponseData{Data=model.Wallet}
+// @Param		request	body		DepositRequest	true	"Deposit request"
+// @Success	201		{object}	ResponseData{data=model.Transaction}
 // @Failure	400		{object}	ResponseError
+// @Failure	404		{object}	ResponseError
 // @Failure	500		{object}	ResponseError
-// @Router		/wallets/{id} [put]
-func (t *walletHandler) Update(c echo.Context) error {
-	var req UpdateRequest
+// @Router		/wallets/deposit [post]
+func (t *walletHandler) Deposit(c echo.Context) error {
+	var req DepositRequest
 	if err := t.MustBind(c, &req); err != nil {
 		return c.JSON(http.StatusBadRequest,
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
 	}
 
-	wallet, err := t.service.Update(req.ID, req.Task, req.Priority, req.Status)
+	transaction, err := t.service.Deposit(req.WalletID, req.Amount, req.ProviderID)
 	if err != nil {
 		if err == model.ErrNotFound {
 			return c.JSON(http.StatusNotFound,
-				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "wallet not found"}}})
+				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "Wallet not found"}}})
 		}
 		return c.JSON(http.StatusInternalServerError,
 			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
 	}
 
-	return c.JSON(http.StatusOK, ResponseData{Data: wallet})
+	return c.JSON(http.StatusCreated, ResponseData{Data: transaction})
 }
 
-// DeleteRequest is the request parameter for deleting a wallet
-type DeleteRequest struct {
-	ID int `param:"id" validate:"required"`
-}
-
-// @Summary	Delete a wallet
+// @Summary	Withdraw money from wallet
 // @Tags		wallets
-// @Param		path	path	DeleteRequest	false	"path"
-// @Success	204
-// @Failure	400	{object}	ResponseError
-// @Failure	404	{object}	ResponseError
-// @Failure	500	{object}	ResponseError
-// @Router		/wallets/{id} [delete]
-func (t *walletHandler) Delete(c echo.Context) error {
-	var req DeleteRequest
+// @Accept		json
+// @Produce	json
+// @Param		request	body		WithdrawRequest	true	"Withdraw request"
+// @Success	201		{object}	ResponseData{data=model.Transaction}
+// @Failure	400		{object}	ResponseError
+// @Failure	404		{object}	ResponseError
+// @Failure	422		{object}	ResponseError
+// @Failure	500		{object}	ResponseError
+// @Router		/wallets/withdraw [post]
+func (t *walletHandler) Withdraw(c echo.Context) error {
+	var req WithdrawRequest
 	if err := t.MustBind(c, &req); err != nil {
 		return c.JSON(http.StatusBadRequest,
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
 	}
 
-	if err := t.service.Delete(req.ID); err != nil {
+	transaction, err := t.service.Withdraw(req.WalletID, req.Amount, req.ProviderID)
+	if err != nil {
 		if err == model.ErrNotFound {
 			return c.JSON(http.StatusNotFound,
-				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "wallet not found"}}})
+				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "Wallet not found"}}})
+		}
+		if err == model.ErrInsufficientFunds {
+			return c.JSON(http.StatusUnprocessableEntity,
+				ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: "Insufficient balance"}}})
 		}
 		return c.JSON(http.StatusInternalServerError,
 			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
 	}
-	return c.NoContent(http.StatusNoContent)
+
+	return c.JSON(http.StatusCreated, ResponseData{Data: transaction})
+}
+
+// @Summary	Transfer money between wallets
+// @Tags		wallets
+// @Accept		json
+// @Produce	json
+// @Param		request	body		TransferRequest	true	"Transfer request"
+// @Success	201		{object}	ResponseData{data=model.Transaction}
+// @Failure	400		{object}	ResponseError
+// @Failure	404		{object}	ResponseError
+// @Failure	422		{object}	ResponseError
+// @Failure	500		{object}	ResponseError
+// @Router		/wallets/transfer [post]
+func (t *walletHandler) Transfer(c echo.Context) error {
+	var req TransferRequest
+	if err := t.MustBind(c, &req); err != nil {
+		return c.JSON(http.StatusBadRequest,
+			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
+	}
+
+	// Validate that from and to wallets are different
+	if req.WalletID == req.ReceiverID {
+		return c.JSON(http.StatusBadRequest,
+			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: "Cannot transfer to the same wallet"}}})
+	}
+
+	transaction, err := t.service.Transfer(req.WalletID, req.ReceiverID, req.Amount)
+	if err != nil {
+		if err == model.ErrNotFound {
+			return c.JSON(http.StatusNotFound,
+				ResponseError{Errors: []Error{{Code: errors.CodeNotFound, Message: "Wallet not found"}}})
+		}
+		if err == model.ErrInsufficientFunds {
+			return c.JSON(http.StatusUnprocessableEntity,
+				ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: "Insufficient balance"}}})
+		}
+		return c.JSON(http.StatusInternalServerError,
+			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+	}
+
+	return c.JSON(http.StatusCreated, ResponseData{Data: transaction})
 }
 
 // FindRequest is the request parameter for finding a wallet
 type FindRequest struct {
-	ID int `param:"id" validate:"required"`
+	UserID int `param:"user_id" validate:"required"`
 }
 
-// @Summary	Find a wallet
+// @Summary	View wallet balance & transaction history
 // @Tags		wallets
-// @Param		path	path		FindRequest	false	"path"
-// @Success	200		{object}	ResponseData{Data=model.Wallet}
+// @Param		user_id	path		int	true	"User ID"
+// @Success	200		{object}	ResponseData{data=WalletResponse}
 // @Failure	400		{object}	ResponseError
 // @Failure	404		{object}	ResponseError
 // @Failure	500		{object}	ResponseError
-// @Router		/wallets/{id} [get]
+// @Router		/wallets/{user_id} [get]
 func (t *walletHandler) Find(c echo.Context) error {
 	var req FindRequest
 	if err := t.MustBind(c, &req); err != nil {
@@ -160,7 +212,7 @@ func (t *walletHandler) Find(c echo.Context) error {
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
 	}
 
-	res, err := t.service.Find(req.ID)
+	wallet, transactions, err := t.service.GetWalletWithTransactions(req.UserID)
 	if err != nil {
 		if err == model.ErrNotFound {
 			return c.JSON(http.StatusNotFound,
@@ -169,22 +221,10 @@ func (t *walletHandler) Find(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError,
 			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
 	}
-	return c.JSON(http.StatusOK, ResponseData{Data: res})
-}
 
-// @Summary	Find all wallets
-// @Tags		wallets
-// @Param		task	query		string	false	"Filter by task name"
-// @Param		status	query		string	false	"Filter by task status"
-// @Success	200		{object}	ResponseData{Data=[]model.Wallet}
-// @Failure	500		{object}	ResponseError
-// @Router		/wallets [get]
-func (t *walletHandler) FindAll(c echo.Context) error {
-	params := c.QueryParams()
-	res, err := t.service.FindAll(params)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError,
-			ResponseError{Errors: []Error{{Code: errors.CodeInternalServerError, Message: err.Error()}}})
+	response := WalletResponse{
+		Wallet:       wallet,
+		Transactions: transactions,
 	}
-	return c.JSON(http.StatusOK, ResponseData{Data: res})
+	return c.JSON(http.StatusOK, ResponseData{Data: response})
 }
