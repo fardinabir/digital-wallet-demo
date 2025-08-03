@@ -3,7 +3,6 @@ package service
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/fardinabir/digital-wallet-demo/internal/model"
 	"github.com/fardinabir/digital-wallet-demo/internal/repository"
@@ -12,10 +11,10 @@ import (
 // Wallet is the service for the wallet endpoint.
 type Wallet interface {
 	Create(wallet *model.Wallet) error
-	Deposit(walletID int, amount string, providerID *int) (*model.Transaction, error)
-	Withdraw(walletID int, amount string, providerID *int) (*model.Transaction, error)
-	Transfer(fromWalletID int, toWalletID int, amount string) (*model.Transaction, error)
-	GetWalletWithTransactions(userID int) (*model.Wallet, []model.Transaction, error)
+	Deposit(userID string, amount int, providerID *string) (*model.Transaction, error)
+	Withdraw(userID string, amount int, providerID *string) (*model.Transaction, error)
+	Transfer(fromUserID string, toUserID string, amount int) (*model.Transaction, error)
+	GetWalletWithTransactions(userID string) (*model.Wallet, []model.Transaction, error)
 }
 
 type wallet struct {
@@ -31,16 +30,15 @@ func (t *wallet) Create(wallet *model.Wallet) error {
 	return t.walletRepository.Create(wallet)
 }
 
-func (t *wallet) Deposit(walletID int, amount string, providerID *int) (*model.Transaction, error) {
-	// Parse amount
-	amountFloat, err := strconv.ParseFloat(amount, 64)
-	if err != nil || amountFloat <= 0 {
+func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.Transaction, error) {
+	// Validate amount
+	if amount <= 0 {
 		return nil, errors.New("invalid amount")
 	}
-	amountCents := int64(amountFloat * 100)
+	amountCents := int64(amount)
 
 	// Find user wallet
-	userWallet, err := t.walletRepository.Find(walletID)
+	userWallet, err := t.walletRepository.FindByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +46,7 @@ func (t *wallet) Deposit(walletID int, amount string, providerID *int) (*model.T
 	// Find or get provider wallet
 	providerWallet, err := t.walletRepository.FindProviderWallet(*providerID)
 	if err != nil {
-		return nil, errors.New("provider wallet not found")
+		return nil, errors.New("deposit provider wallet not found")
 	}
 
 	// Begin database transaction
@@ -65,8 +63,8 @@ func (t *wallet) Deposit(walletID int, amount string, providerID *int) (*model.T
 
 	// Create debit transaction for provider
 	debitTxn := &model.Transaction{
-		SubjectWalletID: providerWallet.ID,
-		ObjectWalletID:  &userWallet.ID,
+		SubjectWalletID: providerWallet.UserID,
+		ObjectWalletID:  &userWallet.UserID,
 		TransactionType: model.Deposit,
 		OperationType:   model.Debit,
 		Amount:          amountCents,
@@ -79,8 +77,8 @@ func (t *wallet) Deposit(walletID int, amount string, providerID *int) (*model.T
 
 	// Create credit transaction for user
 	creditTxn := &model.Transaction{
-		SubjectWalletID: userWallet.ID,
-		ObjectWalletID:  &providerWallet.ID,
+		SubjectWalletID: userWallet.UserID,
+		ObjectWalletID:  &providerWallet.UserID,
 		TransactionType: model.Deposit,
 		OperationType:   model.Credit,
 		Amount:          amountCents,
@@ -111,16 +109,15 @@ func (t *wallet) Deposit(walletID int, amount string, providerID *int) (*model.T
 	return creditTxn, nil
 }
 
-func (t *wallet) Withdraw(walletID int, amount string, providerID *int) (*model.Transaction, error) {
-	// Parse amount
-	amountFloat, err := strconv.ParseFloat(amount, 64)
-	if err != nil || amountFloat <= 0 {
+func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model.Transaction, error) {
+	// Validate amount
+	if amount <= 0 {
 		return nil, errors.New("invalid amount")
 	}
-	amountCents := int64(amountFloat * 100)
+	amountCents := int64(amount)
 
 	// Find user wallet
-	userWallet, err := t.walletRepository.Find(walletID)
+	userWallet, err := t.walletRepository.FindByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +130,7 @@ func (t *wallet) Withdraw(walletID int, amount string, providerID *int) (*model.
 	// Find or get provider wallet
 	providerWallet, err := t.walletRepository.FindProviderWallet(*providerID)
 	if err != nil {
-		return nil, errors.New("provider wallet not found")
+		return nil, errors.New("withdraw provider wallet not found")
 	}
 
 	// Begin database transaction
@@ -150,8 +147,8 @@ func (t *wallet) Withdraw(walletID int, amount string, providerID *int) (*model.
 
 	// Create debit transaction for user
 	debitTxn := &model.Transaction{
-		SubjectWalletID: userWallet.ID,
-		ObjectWalletID:  &providerWallet.ID,
+		SubjectWalletID: userWallet.UserID,
+		ObjectWalletID:  &providerWallet.UserID,
 		TransactionType: model.Withdraw,
 		OperationType:   model.Debit,
 		Amount:          amountCents,
@@ -164,8 +161,8 @@ func (t *wallet) Withdraw(walletID int, amount string, providerID *int) (*model.
 
 	// Create credit transaction for provider
 	creditTxn := &model.Transaction{
-		SubjectWalletID: providerWallet.ID,
-		ObjectWalletID:  &userWallet.ID,
+		SubjectWalletID: providerWallet.UserID,
+		ObjectWalletID:  &userWallet.UserID,
 		TransactionType: model.Withdraw,
 		OperationType:   model.Credit,
 		Amount:          amountCents,
@@ -196,16 +193,21 @@ func (t *wallet) Withdraw(walletID int, amount string, providerID *int) (*model.
 	return debitTxn, nil
 }
 
-func (t *wallet) Transfer(fromWalletID int, toWalletID int, amount string) (*model.Transaction, error) {
-	// Parse amount
-	amountFloat, err := strconv.ParseFloat(amount, 64)
-	if err != nil || amountFloat <= 0 {
+func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*model.Transaction, error) {
+	// Validate amount
+	if amount <= 0 {
 		return nil, errors.New("invalid amount")
 	}
-	amountCents := int64(amountFloat * 100)
+	amountCents := int64(amount)
 
 	// Find sender wallet to check balance
-	fromWallet, err := t.walletRepository.Find(fromWalletID)
+	fromWallet, err := t.walletRepository.FindByUserID(fromUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find receiver wallet to get UserID
+	toWallet, err := t.walletRepository.FindByUserID(toUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -229,8 +231,8 @@ func (t *wallet) Transfer(fromWalletID int, toWalletID int, amount string) (*mod
 
 	// Create debit transaction for sender
 	debitTxn := &model.Transaction{
-		SubjectWalletID: fromWalletID,
-		ObjectWalletID:  &toWalletID,
+		SubjectWalletID: fromWallet.UserID,
+		ObjectWalletID:  &toWallet.UserID,
 		TransactionType: model.Transfer,
 		OperationType:   model.Debit,
 		Amount:          amountCents,
@@ -243,8 +245,8 @@ func (t *wallet) Transfer(fromWalletID int, toWalletID int, amount string) (*mod
 
 	// Create credit transaction for receiver
 	creditTxn := &model.Transaction{
-		SubjectWalletID: toWalletID,
-		ObjectWalletID:  &fromWalletID,
+		SubjectWalletID: toWallet.UserID,
+		ObjectWalletID:  &fromWallet.UserID,
 		TransactionType: model.Transfer,
 		OperationType:   model.Credit,
 		Amount:          amountCents,
@@ -256,12 +258,12 @@ func (t *wallet) Transfer(fromWalletID int, toWalletID int, amount string) (*mod
 	}
 
 	// Update wallet balances
-	if err := t.walletRepository.UpdateWalletBalance(tx, fromWalletID, amountCents, false); err != nil {
+	if err := t.walletRepository.UpdateWalletBalance(tx, fromWallet.ID, amountCents, false); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	if err := t.walletRepository.UpdateWalletBalance(tx, toWalletID, amountCents, true); err != nil {
+	if err := t.walletRepository.UpdateWalletBalance(tx, toWallet.ID, amountCents, true); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -275,16 +277,16 @@ func (t *wallet) Transfer(fromWalletID int, toWalletID int, amount string) (*mod
 	return debitTxn, nil
 }
 
-func (t *wallet) GetWalletWithTransactions(userID int) (*model.Wallet, []model.Transaction, error) {
+func (t *wallet) GetWalletWithTransactions(userID string) (*model.Wallet, []model.Transaction, error) {
 	// Find wallet by user ID
 	wallet, err := t.walletRepository.FindByUserID(userID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Get transactions for this wallet
+	// Get transactions for this wallet using UserID
 	filters := map[string]interface{}{
-		"wallet_id": wallet.ID,
+		"subject_wallet_id": wallet.UserID,
 	}
 	transactions, err := t.walletRepository.FindAllTransactions(filters)
 	if err != nil {

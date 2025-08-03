@@ -18,6 +18,10 @@ func New(cfg model.PostgreSQL) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = Migrate(db)
+	if err != nil {
+		return nil, err
+	}
 	return db, nil
 }
 

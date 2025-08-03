@@ -9,7 +9,7 @@ import (
 // Wallet is the model for the wallet endpoint.
 type Wallet struct {
 	ID        int       `gorm:"primaryKey" json:"id"`
-	UserID    int       `gorm:"not null;index" json:"user_id"`
+	UserID    string    `gorm:"not null;uniqueIndex" json:"user_id"`
 	AcntType  AcntType  `gorm:"not null" json:"acnt_type"`
 	Balance   int64     `gorm:"default:0" json:"balance"` // Balance in cents
 	Status    Status    `json:"status"`
@@ -20,9 +20,8 @@ type Wallet struct {
 // Transaction represents a wallet transaction
 type Transaction struct {
 	ID              int               `gorm:"primaryKey" json:"id"`
-	WalletID        int               `gorm:"not null;index" json:"wallet_id"`
-	SubjectWalletID int               `gorm:"not null;index" json:"subject_wallet_id"`
-	ObjectWalletID  *int              `gorm:"index" json:"object_wallet_id,omitempty"`
+	SubjectWalletID string            `gorm:"not null;uniqueIndex" json:"subject_wallet_id"`
+	ObjectWalletID  *string           `gorm:"uniqueIndex" json:"object_wallet_id,omitempty"`
 	TransactionType TransactionType   `gorm:"not null" json:"transaction_type"`
 	OperationType   OperationType     `gorm:"not null" json:"operation_type"`
 	Amount          int64             `gorm:"not null" json:"amount"` // Amount in cents
@@ -32,7 +31,7 @@ type Transaction struct {
 }
 
 // NewWallet returns a new instance of the wallet model.
-func NewWallet(userID int, acntType AcntType) *Wallet {
+func NewWallet(userID string, acntType AcntType) *Wallet {
 	return &Wallet{
 		UserID:   userID,
 		AcntType: acntType,
@@ -49,6 +48,16 @@ const (
 	User = AcntType("user")
 	// Provider account type
 	Provider = AcntType("provider")
+)
+
+// Provider wallet constants for master accounts
+const (
+	// DepositProviderID is the UserID for the deposit provider wallet
+	// This is a master account that acts as the source for all deposit transactions
+	DepositProviderID = "deposit-provider-master"
+	// WithdrawProviderID is the UserID for the withdraw provider wallet
+	// This is a master account that acts as the destination for all withdraw transactions
+	WithdrawProviderID = "withdraw-provider-master"
 )
 
 // OperationType represents the operation type for transactions

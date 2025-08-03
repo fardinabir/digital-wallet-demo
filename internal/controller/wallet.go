@@ -30,29 +30,29 @@ func NewWallet(s service.Wallet) WalletHandler {
 
 // CreateRequest is the request parameter for creating a new wallet
 type CreateRequest struct {
-	UserID   int            `json:"user_id" validate:"required,gt=0"`
+	UserID   string         `json:"user_id" validate:"required"`
 	AcntType model.AcntType `json:"acnt_type" validate:"required,validAcntType"`
 }
 
 // DepositRequest represents the request for deposit operation
 type DepositRequest struct {
-	WalletID   int    `json:"wallet_id" validate:"required,gt=0"`
-	Amount     string `json:"amount" validate:"required"`
-	ProviderID *int   `json:"provider_id,omitempty"`
+	UserID     string  `json:"user_id" validate:"required"`
+	Amount     int     `json:"amount" validate:"required,gt=0"`
+	ProviderID *string `json:"provider_id,omitempty"`
 }
 
 // WithdrawRequest represents the request for withdraw operation
 type WithdrawRequest struct {
-	WalletID   int    `json:"wallet_id" validate:"required,gt=0"`
-	Amount     string `json:"amount" validate:"required"`
-	ProviderID *int   `json:"provider_id,omitempty"`
+	UserID     string  `json:"user_id" validate:"required"`
+	Amount     int     `json:"amount" validate:"required,gt=0"`
+	ProviderID *string `json:"provider_id,omitempty"`
 }
 
 // TransferRequest represents the request for transfer operation
 type TransferRequest struct {
-	WalletID   int    `json:"wallet_id" validate:"required,gt=0"`
-	ReceiverID int    `json:"receiver_id" validate:"required,gt=0"`
-	Amount     string `json:"amount" validate:"required"`
+	FromUserID string `json:"from_user_id" validate:"required"`
+	ToUserID   string `json:"to_user_id" validate:"required"`
+	Amount     int    `json:"amount" validate:"required,gt=0"`
 }
 
 // WalletResponse represents wallet with transaction history
@@ -103,7 +103,7 @@ func (t *walletHandler) Deposit(c echo.Context) error {
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
 	}
 
-	transaction, err := t.service.Deposit(req.WalletID, req.Amount, req.ProviderID)
+	transaction, err := t.service.Deposit(req.UserID, req.Amount, req.ProviderID)
 	if err != nil {
 		if err == model.ErrNotFound {
 			return c.JSON(http.StatusNotFound,
@@ -134,7 +134,7 @@ func (t *walletHandler) Withdraw(c echo.Context) error {
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: err.Error()}}})
 	}
 
-	transaction, err := t.service.Withdraw(req.WalletID, req.Amount, req.ProviderID)
+	transaction, err := t.service.Withdraw(req.UserID, req.Amount, req.ProviderID)
 	if err != nil {
 		if err == model.ErrNotFound {
 			return c.JSON(http.StatusNotFound,
@@ -170,12 +170,12 @@ func (t *walletHandler) Transfer(c echo.Context) error {
 	}
 
 	// Validate that from and to wallets are different
-	if req.WalletID == req.ReceiverID {
+	if req.FromUserID == req.ToUserID {
 		return c.JSON(http.StatusBadRequest,
 			ResponseError{Errors: []Error{{Code: errors.CodeBadRequest, Message: "Cannot transfer to the same wallet"}}})
 	}
 
-	transaction, err := t.service.Transfer(req.WalletID, req.ReceiverID, req.Amount)
+	transaction, err := t.service.Transfer(req.FromUserID, req.ToUserID, req.Amount)
 	if err != nil {
 		if err == model.ErrNotFound {
 			return c.JSON(http.StatusNotFound,
@@ -194,12 +194,12 @@ func (t *walletHandler) Transfer(c echo.Context) error {
 
 // FindRequest is the request parameter for finding a wallet
 type FindRequest struct {
-	UserID int `param:"user_id" validate:"required"`
+	UserID string `param:"user_id" validate:"required"`
 }
 
 // @Summary	View wallet balance & transaction history
 // @Tags		wallets
-// @Param		user_id	path		int	true	"User ID"
+// @Param		user_id	path		string	true	"User ID"
 // @Success	200		{object}	ResponseData{data=WalletResponse}
 // @Failure	400		{object}	ResponseError
 // @Failure	404		{object}	ResponseError

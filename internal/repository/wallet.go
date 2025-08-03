@@ -11,8 +11,8 @@ type Wallet interface {
 	// Wallet operations
 	Create(t *model.Wallet) error
 	Find(id int) (*model.Wallet, error)
-	FindByUserID(userID int) (*model.Wallet, error)
-	FindProviderWallet(providerID int) (*model.Wallet, error)
+	FindByUserID(userID string) (*model.Wallet, error)
+	FindProviderWallet(providerID string) (*model.Wallet, error)
 
 	// Transaction operations
 	CreateTransaction(t *model.Transaction) error
@@ -54,7 +54,7 @@ func (td *wallet) Find(id int) (*model.Wallet, error) {
 	return wallet, nil
 }
 
-func (td *wallet) FindByUserID(userID int) (*model.Wallet, error) {
+func (td *wallet) FindByUserID(userID string) (*model.Wallet, error) {
 	var wallet *model.Wallet
 	err := td.db.Where("user_id = ?", userID).Take(&wallet).Error
 	if err != nil {
@@ -95,7 +95,7 @@ func (td *wallet) FindAllTransactions(qry map[string]interface{}) ([]model.Trans
 	return transactions, nil
 }
 
-func (td *wallet) FindProviderWallet(providerID int) (*model.Wallet, error) {
+func (td *wallet) FindProviderWallet(providerID string) (*model.Wallet, error) {
 	var wallet *model.Wallet
 	err := td.db.Where("user_id = ? AND acnt_type = ?", providerID, model.Provider).Take(&wallet).Error
 	if err != nil {
