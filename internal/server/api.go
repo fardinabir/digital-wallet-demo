@@ -6,6 +6,7 @@ import (
 	"github.com/fardinabir/digital-wallet-demo/internal/controller"
 	"github.com/fardinabir/digital-wallet-demo/internal/repository"
 	"github.com/fardinabir/digital-wallet-demo/internal/service"
+	"github.com/fardinabir/digital-wallet-demo/internal/utils"
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/fardinabir/digital-wallet-demo/internal/db"
@@ -26,6 +27,9 @@ type WalletAPIServerOpts struct {
 func NewAPI(opts WalletAPIServerOpts) (Server, error) {
 	logger := log.NewEntry(log.StandardLogger())
 	log.SetFormatter(&log.JSONFormatter{})
+
+	// Initialize global logger
+	utils.InitLogger(logger)
 
 	dbInstance, err := db.New(opts.Config.PostgreSQL)
 	if err != nil {
