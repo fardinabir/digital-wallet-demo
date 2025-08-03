@@ -13,13 +13,11 @@ import (
 	"github.com/fardinabir/digital-wallet-demo/internal/model"
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 // WalletAPIServerOpts is the options for the WalletAPIServer
 type WalletAPIServerOpts struct {
 	ListenPort int
-	db         *gorm.DB
 	Config     model.Config
 }
 

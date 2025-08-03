@@ -60,15 +60,13 @@ serve:
 
 .PHONY: lint
 lint:
-	golangci-lint run
-	cd ui && yarn lint
+	$(shell go env GOPATH)/bin/golangci-lint run
 
 .PHONY: fmt
 fmt:
 	go mod tidy
-	golangci-lint run --fix
+	$(shell go env GOPATH)/bin/golangci-lint run --fix
 	swag fmt
-	cd ui && yarn lint-fix
 
 .PHONY: test-backend
 test-backend: reset-test-db
