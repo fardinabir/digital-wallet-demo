@@ -26,9 +26,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      no_cache: true
     container_name: wallet_app
     ports:
       - "8080:8080"
+      - "1314:1314"
     depends_on:
       postgres:
         condition: service_healthy
