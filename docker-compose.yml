@@ -1,17 +1,19 @@
 version: '3.8'
 
 services:
+  # Shared PostgreSQL Database
   postgres:
     image: postgres:15
-    container_name: wallet_postgres
+    container_name: shared_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: wallet
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -20,17 +22,57 @@ services:
     command: |
       postgres -c 'max_connections=200'
     networks:
-      - wallet-network
+      - microservices-network
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Wallet Service
   wallet-app:
     build:
-      context: .
+      context: ./services/wallets
       dockerfile: Dockerfile
       no_cache: true
     container_name: wallet_app
     ports:
-      - "8080:8080"
+      - "8081:8081"
       - "1314:1314"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - CONFIG_FILE=config.docker.yaml
+    command: ["/bin/sh", "-c", "./main migrate --config config.docker.yaml && ./main server --config config.docker.yaml"]
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
+  # Transactions Service
+  transactions-app:
+    build:
+      context: ./services/transactions
+      dockerfile: Dockerfile
+      no_cache: true
+    container_name: transactions_app
+    ports:
+      - "8082:8082"
+      - "1315:1314"
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,12 +80,45 @@ services:
       - CONFIG_FILE=config.docker.yaml
     command: ["/bin/sh", "-c", "./main migrate --config config.docker.yaml && ./main server --config config.docker.yaml"]
     networks:
-      - wallet-network
+      - microservices-network
     restart: unless-stopped
+
+  # Kong API Gateway
+  kong:
+    image: kong:3.6
+    container_name: kong
+    restart: always
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yaml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002, 0.0.0.0:8445 ssl
+      KONG_PLUGINS: bundled,rate-limiting
+      KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: resty.http
+    ports:
+      - "8000:8000"     # Proxy (HTTP)
+      - "8443:8443"     # Proxy (HTTPS)
+      - "8001:8001"     # Admin API (HTTP)
+      - "8444:8444"     # Admin API (HTTPS)
+      - "8002:8002"     # Dev Portal (HTTP)
+      - "8445:8445"     # Dev Portal (HTTPS)
+    volumes:
+      - ./kong.yaml:/usr/local/kong/declarative/kong.yaml
+    depends_on:
+      - wallet-app
+      - transactions-app
+    networks:
+      - microservices-network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
-  wallet-network:
+  microservices-network:
     driver: bridge

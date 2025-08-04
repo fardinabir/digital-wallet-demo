@@ -1,0 +1,204 @@
+basePath: /api/v1
+definitions:
+  controller.Error:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  controller.ResponseData:
+    properties:
+      data:
+        description: Data is the response data.
+    type: object
+  controller.ResponseError:
+    properties:
+      errors:
+        description: Errors is the response errors.
+        items:
+          $ref: '#/definitions/controller.Error'
+        type: array
+    type: object
+  controller.TransactionPairRequest:
+    properties:
+      credit_transaction:
+        $ref: '#/definitions/controller.TransactionRequest'
+      debit_transaction:
+        $ref: '#/definitions/controller.TransactionRequest'
+    required:
+    - credit_transaction
+    - debit_transaction
+    type: object
+  controller.TransactionRequest:
+    properties:
+      amount:
+        type: integer
+      object_wallet_id:
+        type: string
+      operation_type:
+        $ref: '#/definitions/model.OperationType'
+      status:
+        $ref: '#/definitions/model.TransactionStatus'
+      subject_wallet_id:
+        type: string
+      transaction_type:
+        $ref: '#/definitions/model.TransactionType'
+    required:
+    - amount
+    - object_wallet_id
+    - operation_type
+    - status
+    - subject_wallet_id
+    - transaction_type
+    type: object
+  model.OperationType:
+    enum:
+    - debit
+    - credit
+    type: string
+    x-enum-varnames:
+    - Debit
+    - Credit
+  model.Transaction:
+    properties:
+      amount:
+        description: Amount in cents
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      object_wallet_id:
+        type: string
+      operation_type:
+        $ref: '#/definitions/model.OperationType'
+      status:
+        $ref: '#/definitions/model.TransactionStatus'
+      subject_wallet_id:
+        type: string
+      transaction_type:
+        $ref: '#/definitions/model.TransactionType'
+      updated_at:
+        type: string
+    type: object
+  model.TransactionStatus:
+    enum:
+    - pending
+    - completed
+    - failed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - Pending
+    - Completed
+    - Failed
+    - Cancelled
+  model.TransactionType:
+    enum:
+    - deposit
+    - withdraw
+    - transfer
+    type: string
+    x-enum-varnames:
+    - Deposit
+    - Withdraw
+    - Transfer
+host: localhost:8082
+info:
+  contact: {}
+  description: This is a digital wallet transactions microservice API.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Digital Txn Transactions API
+  version: v1.0
+paths:
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: Health check
+      tags:
+      - health
+  /transactions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Transaction pair request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.TransactionPairRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: Create a transaction pair (debit and credit)
+      tags:
+      - transactions
+  /transactions/{subject_wallet_id}:
+    get:
+      parameters:
+      - description: Subject Wallet ID
+        in: path
+        name: subject_wallet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.ResponseData'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/model.Transaction'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ResponseError'
+      summary: Get transactions for a wallet
+      tags:
+      - transactions
+schemes:
+- http
+- https
+swagger: "2.0"

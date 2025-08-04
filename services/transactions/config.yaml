@@ -1,0 +1,15 @@
+swaggerServer:
+  enable: true
+  port: 1315
+
+apiServer:
+  enable: true
+  port: 8082
+
+postgreSQL:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: transaction
+  sslmode: disable

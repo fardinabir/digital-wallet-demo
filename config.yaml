@@ -1,9 +1,0 @@
-swaggerServer:
-  enable: true
-postgreSQL:
-  host: localhost
-  port: 5432
-  user: postgres
-  password: postgres
-  dbname: wallet
-  sslmode: disable

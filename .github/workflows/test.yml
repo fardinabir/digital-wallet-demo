@@ -7,8 +7,11 @@ on:
     branches: [ "main" ]
     paths:
       - '**.go'
+      - 'services/wallets/go.mod'
+      - 'services/wallets/go.sum'
+      - 'services/transactions/go.mod'
+      - 'services/transactions/go.sum'
       - 'go.mod'
-      - 'go.sum'
 
 jobs:
 
@@ -28,6 +31,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4.2.0
         with:
@@ -41,8 +54,15 @@ jobs:
       - name: Install swag
         run: go install github.com/swaggo/swag/cmd/swag@latest
 
-      - name: Generate Swagger docs
-        run: swag init
+      - name: Generate Swagger docs for wallet service
+        run: |
+          cd services/wallets
+          swag init
+      
+      - name: Generate Swagger docs for transaction service
+        run: |
+          cd services/transactions
+          swag init
 
       - name: Setup gotestsum
         run: |
@@ -63,7 +83,7 @@ jobs:
           gotestsum --version
 
       - name: Run tests
-        run: make test-backend-ci
+        run: make test-ci
 
       - name: create report
         uses: k1LoW/octocov-action@v1

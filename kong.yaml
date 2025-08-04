@@ -1,0 +1,73 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  # Wallet Service for user-friendly routes
+  - name: wallet-service-users
+    url: http://wallet-app:8081/api/v1/wallets
+    routes:
+      # Create user account
+      - name: users-create
+        paths:
+          - /users
+        strip_path: true
+        methods:
+          - POST
+  
+  # Wallet Service for deposit operations
+  - name: wallet-service-deposit
+    url: http://wallet-app:8081/api/v1/wallets/deposit
+    routes:
+      # Deposit funds
+      - name: wallet-deposit
+        paths:
+          - /wallets/deposit
+        strip_path: true
+        methods:
+          - POST
+  
+  # Wallet Service for withdraw operations
+  - name: wallet-service-withdraw
+    url: http://wallet-app:8081/api/v1/wallets/withdraw
+    routes:
+      # Withdraw funds
+      - name: wallet-withdraw
+        paths:
+          - /wallets/withdraw
+        strip_path: true
+        methods:
+          - POST
+  
+  # Wallet Service for transfer operations
+  - name: wallet-service-transfer
+    url: http://wallet-app:8081/api/v1/wallets/transfer
+    routes:
+      # Transfer between users
+      - name: wallet-transfer
+        paths:
+          - /wallets/transfer
+        strip_path: true
+        methods:
+          - POST
+  
+  # Wallet Service for balance operations
+  - name: wallet-service-balance
+    url: http://wallet-app:8081/api/v1
+    routes:
+      # View wallet balance & transaction history
+      - name: wallet-balance
+        paths:
+          - "/wallets/"
+        strip_path: false
+        methods:
+          - GET
+
+# Global rate limiting plugin
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 100
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
