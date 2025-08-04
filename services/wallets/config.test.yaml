@@ -5,3 +5,11 @@ postgreSQL:
   password: postgres
   dbname: wallet_test
   sslmode: disable
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 1
+  maxRetries: 3
+  poolSize: 10

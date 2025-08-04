@@ -6,6 +6,7 @@ type Config struct {
 	APIServer     Server
 	SwaggerServer Server
 	PostgreSQL    PostgreSQL
+	Redis         Redis
 	Services      Services
 }
 
@@ -33,4 +34,14 @@ type PostgreSQL struct {
 	Password string `validate:"required"`
 	DBName   string `validate:"required"`
 	SSLMode  string `validate:"required"`
+}
+
+// Redis is the configuration for the Redis cache.
+type Redis struct {
+	Host       string `validate:"required"`
+	Port       int    `validate:"required"`
+	Password   string
+	DB         int
+	MaxRetries int
+	PoolSize   int
 }

@@ -2,7 +2,9 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/cache"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/client"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/model"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/repository"
@@ -24,7 +26,9 @@ type wallet struct {
 
 // NewWalletService creates a new Wallet service.
 func NewWalletService(wr repository.Wallet) Wallet {
-	return &wallet{wr}
+	return &wallet{
+		walletRepository: wr,
+	}
 }
 
 func (t *wallet) Create(wallet *model.Wallet) error {
@@ -121,6 +125,16 @@ func (t *wallet) Deposit(userID string, amount int, providerID *string) (*model.
 		return nil, err
 	}
 
+	// Invalidate cache for both user and provider
+	ctx := context.Background()
+	redisClient := cache.NewRedisClient()
+	if err := redisClient.DeleteTransactionHistory(ctx, userWallet.UserID); err != nil {
+		utils.LogError("Failed to invalidate user cache after deposit", err)
+	}
+	if err := redisClient.DeleteTransactionHistory(ctx, providerWallet.UserID); err != nil {
+		utils.LogError("Failed to invalidate provider cache after deposit", err)
+	}
+
 	// Return the credit transaction for the user
 	return creditTxn, nil
 }
@@ -215,6 +229,16 @@ func (t *wallet) Withdraw(userID string, amount int, providerID *string) (*model
 		return nil, err
 	}
 
+	// Invalidate cache for both user and provider
+	ctx := context.Background()
+	redisClient := cache.NewRedisClient()
+	if err := redisClient.DeleteTransactionHistory(ctx, userWallet.UserID); err != nil {
+		utils.LogError("Failed to invalidate user cache after withdraw", err)
+	}
+	if err := redisClient.DeleteTransactionHistory(ctx, providerWallet.UserID); err != nil {
+		utils.LogError("Failed to invalidate provider cache after withdraw", err)
+	}
+
 	// Return the debit transaction for the user
 	return debitTxn, nil
 }
@@ -303,6 +327,16 @@ func (t *wallet) Transfer(fromUserID string, toUserID string, amount int) (*mode
 		return nil, err
 	}
 
+	// Invalidate cache for both sender and receiver
+	ctx := context.Background()
+	redisClient := cache.NewRedisClient()
+	if err := redisClient.DeleteTransactionHistory(ctx, fromWallet.UserID); err != nil {
+		utils.LogError("Failed to invalidate sender cache after transfer", err)
+	}
+	if err := redisClient.DeleteTransactionHistory(ctx, toWallet.UserID); err != nil {
+		utils.LogError("Failed to invalidate receiver cache after transfer", err)
+	}
+
 	// Return the debit transaction for the sender
 	return debitTxn, nil
 }
@@ -315,11 +349,29 @@ func (t *wallet) GetWalletWithTransactions(userID string) (*model.Wallet, []mode
 		return nil, nil, err
 	}
 
-	// Get transactions from transaction microservice
-	transactions, err := client.NewTxnClient().FetchTransactions(wallet.UserID)
+	ctx := context.Background()
+	redisClient := cache.NewRedisClient()
+
+	// Try to get transactions from Redis cache first
+	transactions, err := redisClient.GetTransactionHistory(ctx, wallet.UserID)
 	if err != nil {
-		utils.LogError("Failed to retrieve transactions from transaction service", err)
-		return nil, nil, err
+		utils.LogError("Failed to get transactions from cache", err)
+		// Continue to fetch from transaction service
+	}
+
+	// If cache miss or error, fetch from transaction microservice
+	if transactions == nil {
+		transactions, err = client.NewTxnClient().FetchTransactions(wallet.UserID)
+		if err != nil {
+			utils.LogError("Failed to retrieve transactions from transaction service", err)
+			return nil, nil, err
+		}
+
+		// Save to cache for future requests
+		if err := redisClient.SaveTransactionHistory(ctx, wallet.UserID, transactions); err != nil {
+			utils.LogError("Failed to save transactions to cache", err)
+			// Continue without caching - not a critical error
+		}
 	}
 
 	return wallet, transactions, nil

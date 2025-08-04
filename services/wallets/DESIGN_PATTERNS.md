@@ -53,7 +53,9 @@ Allows different business logic implementations without changing controllers
 **Benefit**: Easy to extend with new wallet types or business rules
 
 ### 5. Singleton Pattern
-**Location**: `internal/client/transaction_client.go`
+**Locations**: 
+- `internal/client/transaction_client.go`
+- `internal/cache/redis.go`
 
 **Implementation**:
 - Thread-safe singleton using `sync.Once`
@@ -66,6 +68,28 @@ Ensures only one transaction client instance exists, reducing resource usage
 **Concurrency Safety**: Uses `sync.Once` to guarantee thread-safe initialization
 
 **Usage**: Called via `client.NewTxnClient().CreateTransactionPair()` in service layer
+
+#### Redis Singleton Pattern with sync.Once
+
+```go
+var (
+    redisInstance RedisClient
+    redisOnce     sync.Once
+)
+
+func NewRedisClient() RedisClient {
+    redisOnce.Do(func() {
+        // Initialize Redis client once
+        redisInstance = &redisClient{...}
+    })
+    return redisInstance
+}
+```
+
+**Benefits**:
+- **Thread-safe initialization**: Prevents race conditions
+- **Resource efficiency**: Single connection pool shared across application
+- **Consistent configuration**: Global config applied once
 
 ## Concurrency Implementation
 
@@ -80,7 +104,18 @@ Non-blocking server startup for API and Swagger servers
 
 **Pattern**: `go func()` with error handling for each server
 
-### 2. Database Row-Level Locking
+### 2. Goroutines for Transaction History Fetching
+**Location**: `internal/service/wallet.go`
+
+**Implementation**:
+Asynchronous transaction history retrieval in `GetWalletWithTransactions()` method
+
+**Problem Solved**:
+Non-blocking external service calls for transaction data
+
+**Pattern**: Concurrent HTTP requests to transaction microservice while processing wallet data
+
+### 3. Database Row-Level Locking
 **Location**: `internal/repository/wallet.go`
 
 **Implementation**:
@@ -94,7 +129,7 @@ Prevents race conditions during concurrent balance updates
 
 **Critical Section**: Wallet balance modification with exclusive lock
 
-### 3. Context-Based Graceful Shutdown
+### 4. Context-Based Graceful Shutdown
 **Location**: `cmd/server.go`
 
 **Implementation**:
@@ -106,7 +141,7 @@ Clean server shutdown without losing in-flight requests
 
 **Concurrency Control**: Coordinates shutdown across multiple goroutines
 
-### 4. Database Transaction Management
+### 5. Database Transaction Management
 **Location**: `internal/service/wallet.go`
 
 **Implementation**:

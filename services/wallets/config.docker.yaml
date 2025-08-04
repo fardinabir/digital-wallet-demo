@@ -14,6 +14,14 @@ postgreSQL:
   dbname: wallet
   sslmode: disable
 
+redis:
+  host: redis
+  port: 6379
+  password: ""
+  db: 0
+  maxRetries: 3
+  poolSize: 10
+
 services:
   transaction:
     baseURL: "http://transactions-app:8082"
