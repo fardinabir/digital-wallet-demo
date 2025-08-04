@@ -209,12 +209,18 @@ func TestWalletHandler_Deposit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset client singleton and mock transaction client
 			client.ResetClient()
+			cache.ResetRedisClient()
 			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
+			redisPatches := gomonkey.ApplyFunc(cache.NewRedisClient, func() cache.RedisClient {
+				return cache.NewMockRedisClient()
+			})
 			defer func() {
 				patches.Reset()
+				redisPatches.Reset()
 				client.ResetClient()
+				cache.ResetRedisClient()
 			}()
 
 			// Clean database before each test
@@ -343,12 +349,18 @@ func TestWalletHandler_Withdraw(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset client singleton and mock transaction client
 			client.ResetClient()
+			cache.ResetRedisClient()
 			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
+			redisPatches := gomonkey.ApplyFunc(cache.NewRedisClient, func() cache.RedisClient {
+				return cache.NewMockRedisClient()
+			})
 			defer func() {
 				patches.Reset()
+				redisPatches.Reset()
 				client.ResetClient()
+				cache.ResetRedisClient()
 			}()
 
 			// Clean database before each test
@@ -495,12 +507,18 @@ func TestWalletHandler_Transfer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset client singleton and mock transaction client
 			client.ResetClient()
+			cache.ResetRedisClient()
 			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
+			redisPatches := gomonkey.ApplyFunc(cache.NewRedisClient, func() cache.RedisClient {
+				return cache.NewMockRedisClient()
+			})
 			defer func() {
 				patches.Reset()
+				redisPatches.Reset()
 				client.ResetClient()
+				cache.ResetRedisClient()
 			}()
 
 			// Clean database before each test
@@ -606,17 +624,17 @@ func TestWalletHandler_Find(t *testing.T) {
 			// Reset client singletons and mock both transaction and Redis clients
 			client.ResetClient()
 			cache.ResetRedisClient()
-			
+
 			// Mock transaction client
 			txnPatches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
-			
+
 			// Mock Redis client
 			redisPatches := gomonkey.ApplyFunc(cache.NewRedisClient, func() cache.RedisClient {
 				return cache.NewMockRedisClient()
 			})
-			
+
 			defer func() {
 				txnPatches.Reset()
 				redisPatches.Reset()

@@ -28,6 +28,8 @@ func cmpTransformJSON(t *testing.T) cmp.Option {
 // ignoreMapEntires go-cmpのDiffで特定のmapの特定のkeyを無視するオプションを返す
 //
 // cmpTransformJSONを使っているときに'CreatedAt'や'UpdatedAt'を無視する場合に便利。
+//
+//nolint:unused // This function is kept for potential future use in tests
 func ignoreMapEntires(want map[string]any) cmp.Option {
 	return cmpopts.IgnoreMapEntries(func(k string, _ any) bool {
 		_, ok := want[k]
