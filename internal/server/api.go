@@ -36,13 +36,9 @@ func NewAPI(opts WalletAPIServerOpts) (Server, error) {
 
 	engine := echo.New()
 
-	allowOrigins := []string{}
-	if opts.Config.SwaggerServer.Enable {
-		allowOrigins = append(allowOrigins, fmt.Sprintf("http://localhost:%d", opts.Config.SwaggerServer.Port))
-	}
-	log.Info("CORS allowed origins: ", allowOrigins)
+	// Allow all origins for CORS
 	engine.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: allowOrigins,
+		AllowOrigins: []string{"*"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))

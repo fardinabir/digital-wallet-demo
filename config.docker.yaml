@@ -1,5 +1,6 @@
 swaggerServer:
   enable: true
+  port: 1314
 postgreSQL:
   host: postgres
   port: 5432
