@@ -9,8 +9,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
@@ -28,8 +26,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis_cache
-    ports:
-      - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -49,7 +45,6 @@ services:
       no_cache: true
     container_name: wallet_app
     ports:
-      - "8081:8081"
       - "1314:1314"
     depends_on:
       postgres:
@@ -71,7 +66,6 @@ services:
       no_cache: true
     container_name: transactions_app
     ports:
-      - "8082:8082"
       - "1315:1314"
     depends_on:
       postgres:
@@ -102,11 +96,6 @@ services:
       KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: resty.http
     ports:
       - "8000:8000"     # Proxy (HTTP)
-      - "8443:8443"     # Proxy (HTTPS)
-      - "8001:8001"     # Admin API (HTTP)
-      - "8444:8444"     # Admin API (HTTPS)
-      - "8002:8002"     # Dev Portal (HTTP)
-      - "8445:8445"     # Dev Portal (HTTPS)
     volumes:
       - ./kong.yaml:/usr/local/kong/declarative/kong.yaml
     depends_on:
