@@ -62,7 +62,16 @@ definitions:
           $ref: '#/definitions/model.Transaction'
         type: array
       wallet:
-        $ref: '#/definitions/model.Wallet'
+        $ref: '#/definitions/controller.WalletSummary'
+    type: object
+  controller.WalletSummary:
+    properties:
+      acnt_type:
+        $ref: '#/definitions/model.AcntType'
+      balance:
+        type: integer
+      status:
+        $ref: '#/definitions/model.Status'
     type: object
   controller.WithdrawRequest:
     properties:
@@ -190,7 +199,7 @@ paths:
       summary: Health check
       tags:
       - health
-  /wallets:
+  /users:
     post:
       consumes:
       - application/json

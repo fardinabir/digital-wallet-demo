@@ -29,7 +29,7 @@ This document explains how Redis caching has been implemented in the digital wal
 
 ```mermaid
 flowchart TD
-    A[User Request] --> B[Wallet Service]
+    A[Fetch Request] --> B[Get Transaction History]
     B --> C{Redis Cache Hit?}
     C -->|Yes| D[Return Cached Data]
     C -->|No| E[Transaction Service]
@@ -38,6 +38,11 @@ flowchart TD
     G --> H[Return Fresh Data]
     D --> I[Response - Fast Path]
     H --> I
+    
+    J[Transaction Request] --> K[Wallet Balance Updated]
+    K --> L[Cache Purged/Invalidated]
+    L --> M[Next Request Cache Miss]
+
 ```
 
 **Benefits**:

@@ -147,9 +147,10 @@ redis-check: ## Check Redis cache status
 # =============================================================================
 
 .PHONY: dev
-dev: clean up migrate ## Quick development setup (clean + up + migrate)
+dev: clean up ## Quick development setup (clean + up + migrate)
 	@echo "🚀 Development environment ready!"
-	@echo "📖 Run 'make health' to verify all services are running"
+	@echo "📖 Run 'make test'  to verify all functionalities are working"
+	@echo " Refer to swagger for details : http://localhost:1314/swagger/index.html"
 
 .PHONY: demo
 demo: dev ## Setup demo environment with sample data

@@ -13,6 +13,7 @@ services:
         strip_path: true
         methods:
           - POST
+          - OPTIONS
   
   # Wallet Service for deposit operations
   - name: wallet-service-deposit
@@ -25,6 +26,7 @@ services:
         strip_path: true
         methods:
           - POST
+          - OPTIONS
   
   # Wallet Service for withdraw operations
   - name: wallet-service-withdraw
@@ -37,6 +39,7 @@ services:
         strip_path: true
         methods:
           - POST
+          - OPTIONS
   
   # Wallet Service for transfer operations
   - name: wallet-service-transfer
@@ -49,6 +52,7 @@ services:
         strip_path: true
         methods:
           - POST
+          - OPTIONS
   
   # Wallet Service for balance operations
   - name: wallet-service-balance
@@ -61,13 +65,48 @@ services:
         strip_path: false
         methods:
           - GET
+          - OPTIONS
+
+  # Wallet Service for health check
+  - name: wallet-service-health
+    url: http://wallet-app:8081/api/v1/health
+    routes:
+      # Health check endpoint
+      - name: health-check
+        paths:
+          - /health
+        strip_path: true
+        methods:
+          - GET
+          - OPTIONS
 
 # Global rate limiting plugin
 plugins:
   - name: rate-limiting
     config:
-      minute: 100
-      hour: 1000
+      minute: 300
+      hour: 10000
       policy: local
       fault_tolerant: true
       hide_client_headers: false
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - HEAD
+        - PUT
+        - PATCH
+        - POST
+        - DELETE
+        - OPTIONS
+        - TRACE
+        - CONNECT
+      headers:
+        - "*"
+      exposed_headers:
+        - "*"
+      credentials: true
+      max_age: 3600
+      preflight_continue: false

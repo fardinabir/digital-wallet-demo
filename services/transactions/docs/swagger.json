@@ -6,7 +6,7 @@
     "swagger": "2.0",
     "info": {
         "description": "This is a digital wallet transactions microservice API.",
-        "title": "Digital Txn Transactions API",
+        "title": "Digital Wallet Transactions API",
         "contact": {},
         "license": {
             "name": "MIT",

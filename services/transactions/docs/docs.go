@@ -322,7 +322,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8082",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
-	Title:            "Digital Txn Transactions API",
+	Title:            "Digital Wallet Transactions API",
 	Description:      "This is a digital wallet transactions microservice API.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

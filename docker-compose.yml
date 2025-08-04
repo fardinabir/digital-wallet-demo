@@ -65,8 +65,6 @@ services:
       dockerfile: Dockerfile
       no_cache: true
     container_name: transactions_app
-    ports:
-      - "1315:1314"
     depends_on:
       postgres:
         condition: service_healthy

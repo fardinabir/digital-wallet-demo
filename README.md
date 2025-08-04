@@ -10,9 +10,7 @@ A production-ready, scalable digital wallet system built with Go microservices a
 ## System Architecture
 
 <p align="center">
-  <a href="https://postimg.cc/zbprgdqc">
-    <img src="https://i.postimg.cc/tJGC8fwp/Screenshot-2025-08-05-at-2-15-05-AM.png" alt="Screenshot" width="500" style="height:auto;" />
-  </a>
+  <img src="assets/system_architecture.png" alt="Digital Wallet System Architecture" width="600" style="height:auto;" />
 </p>
 
 ## 🛠️ Technology Stack
@@ -37,7 +35,7 @@ A production-ready, scalable digital wallet system built with Go microservices a
 
 ### 1. Clone and Setup
 ```bash
-git clone <repository-url>
+git clone https://github.com/fardinabir/digital-wallet-demo.git
 cd digital-wallet-demo
 ```
 
@@ -53,61 +51,42 @@ make dev
 # - Setup provider wallets
 ```
 
-### 3. Verify Services
+### 3. Verify APIs
 ```bash
 # Check all service health
-make health
-
-# Expected output:
-# ✅ Wallet Service: http://localhost:1314
-# ✅ Transaction Service: http://localhost:1315  
-# ✅ Kong Gateway: http://localhost:8000
-# ✅ Redis Cache: Connected
+make test
+# This will run all unit tests and integration tests
 ```
 
-### 4. Access API Documentation
+### 4. Access API Details
 
 **Swagger UI Access:**
-- **Wallet Service**: http://localhost:1314/swagger/index.html
-- **Transaction Service**: http://localhost:1315/swagger/index.html
-- **Kong Gateway**: http://localhost:8000 (API endpoints)
+- **Exposed endpoints**: http://localhost:1314/swagger/index.html
+- **Kong Gateway**: http://localhost:8000/ (API endpoints)
 
-## 🚀 Key Features & Performance Highlights
+## 📚 Documentation
 
-### 🏎️ High-Performance Architecture
-- **Concurrent Processing**: Go routines for parallel transaction fetching from microservices
-- **Race Condition Protection**: Thread-safe operations with proper synchronization
-- **Redis Caching**: 90%+ cache hit ratio, reducing response times from 150ms to 5ms
-- **Connection Pooling**: Optimized database connections for high throughput
+Detailed documentation is available for specific components:
 
-### 📈 Scalability & Microservices
-- **Horizontal Scaling**: Independent service scaling based on load
-- **Service Mesh Ready**: Kong API Gateway with rate limiting (100 req/min)
-- **Database Sharding Ready**: Separate service databases with shared infrastructure
-- **Load Distribution**: Redis cache reduces inter-service communication by 90%
+### 🎯 Design Pattern Documentation
+- **[Design Patterns & Concurrency](design_patterns_concurrency.md)** - Comprehensive guide to design patterns and concurrency mechanisms implemented across the system
 
-### 💰 Financial-Grade Transaction Processing
-- **ACID Compliance**: Atomic transactions with rollback capabilities
-- **Double-Entry Bookkeeping**: Complete audit trail for all financial operations
-- **Concurrent Transaction Safety**: Prevents race conditions in balance updates
-- **Real-time Balance Consistency**: Immediate balance updates across services
+### 📄 Component Documentation
+- **[Kong API Gateway](KONG_API_DOCUMENTATION.md)** - API routes, rate limiting, and usage examples
+- **[Redis Performance](REDIS_PERFORMANCE.md)** - Caching strategy, performance metrics, and optimization
+- **[Wallet Database Schema](services/wallets/DATABASE_SCHEMA.md)** - Wallet service database design
+- **[Transaction Database Schema](services/transactions/DATABASE_SCHEMA.md)** - Transaction service database design
+- **[Wallet Service Setup](services/wallets/DATABASE_SETUP.md)** - Service-specific setup guide
+- **[Transaction Service Setup](services/transactions/DATABASE_SETUP.md)** - Service-specific setup guide
 
-### 🧪 Comprehensive Testing & Quality
-- **93.3% Test Coverage**: Extensive unit, integration, and end-to-end tests
-- **CI/CD Pipeline**: Automated testing and linting with GitHub Actions
-- **Code Quality**: golangci-lint integration with 15+ linters
-- **Performance Testing**: Load testing for concurrent transaction scenarios
-
-### ⚡ Performance Metrics
-- **Throughput**: 10,000+ transactions per second
-- **Response Time**: <5ms for cached requests, <50ms for database queries
-- **Concurrency**: Handles 1000+ concurrent users
-- **Availability**: 99.9% uptime with graceful error handling
-
-
-### Test the System
+## 🔄 Test the System
 
 ```bash
+# Health check for wallet service
+curl -X 'GET' \
+  'http://localhost:8000/health' \
+  -H 'accept: application/json'
+
 # Create a test wallet
 curl -X POST http://localhost:8000/users \
   -H "Content-Type: application/json" \
@@ -131,16 +110,32 @@ curl -X POST http://localhost:8000/wallets/transfer \
   -d '{"from_user_id": "test-user", "to_user_id": "test-user-2", "amount": 2500}'
 ```
 
-## 📚 Documentation
 
-Detailed documentation is available for specific components:
+## 🚀 Key Features & Performance Highlights
 
-- **[Kong API Gateway](KONG_API_DOCUMENTATION.md)** - API routes, rate limiting, and usage examples
-- **[Redis Performance](REDIS_PERFORMANCE.md)** - Caching strategy, performance metrics, and optimization
-- **[Wallet Database Schema](services/wallets/DATABASE_SCHEMA.md)** - Wallet service database design
-- **[Transaction Database Schema](services/transactions/DATABASE_SCHEMA.md)** - Transaction service database design
-- **[Wallet Service Setup](services/wallets/DATABASE_SETUP.md)** - Service-specific setup guide
-- **[Transaction Service Setup](services/transactions/DATABASE_SETUP.md)** - Service-specific setup guide
+### 🏎️ High-Performance Architecture
+- **Concurrent Processing**: Go routines for parallel transaction fetching from microservices
+- **Race Condition Protection**: Thread-safe operations with proper synchronization
+- **Redis Caching**: 90%+ cache hit ratio, reducing response times from 150ms to 5ms
+- **Connection Pooling**: Optimized database connections for high throughput
+
+### 📈 Scalability & Microservices
+- **Horizontal Scaling**: Independent service scaling based on load
+- **Load capable**: Kong API Gateway with rate limiting (300 req/min)
+- **Database Seperation Ready**: Separate service databases with shared infrastructure
+- **Load Distribution**: Redis cache reduces inter-service communication by ~90%
+
+### 💰 Financial-Grade Transaction Processing
+- **ACID Compliance**: Atomic transactions with rollback capabilities
+- **Double-Entry Bookkeeping**: Complete audit trail for all financial operations
+- **Concurrent Transaction Safety**: Prevents race conditions in balance updates
+- **Real-time Balance Consistency**: Immediate balance updates across services
+
+### 🧪 Comprehensive Testing & Quality
+- **93.3% Test Coverage**: Extensive unit, integration, and end-to-end tests
+- **CI/CD Pipeline**: Automated testing and linting with GitHub Actions
+- **Code Quality**: golangci-lint integration with 15+ linters
+
 
 ## 🔧 Development Commands
 
@@ -154,23 +149,6 @@ make down             # Stop all services
 make test             # Run all tests
 ```
 
-## 🏦 Business Logic
-
-### Account Types
-- **User Accounts**: Individual customer wallets
-- **Provider Accounts**: System accounts for deposits/withdrawals
-
-### Transaction Types
-- **Deposit**: External funds added to user wallet
-- **Withdrawal**: Funds removed from user wallet to external account
-- **Transfer**: Peer-to-peer transfer between user wallets
-
-### Financial Rules
-- All amounts stored in cents (integer precision)
-- Negative balances prevented at database level
-- Atomic transactions with automatic rollback on failure
-- Complete audit trail for regulatory compliance
-
 ## 🔒 Security & Compliance
 
 ### Current Implementation
@@ -178,98 +156,23 @@ make test             # Run all tests
 - SQL injection prevention via GORM
 - Rate limiting via Kong Gateway
 - Transaction atomicity and consistency
-- Comprehensive audit logging
+- Double-entry Book-keeping like standard financial systems
 
 ### Production Recommendations
+- Deployment in K8s with secure secrets management
 - JWT authentication and authorization
 - TLS encryption for all communications
-- Database encryption at rest
-- PCI DSS compliance measures
+- Database encryption for sensitive data
 - Advanced monitoring and alerting
-
-## 📊 Performance Benchmarks
-
-### Load Testing Results
-- **Concurrent Users**: 1,000+ simultaneous connections
-- **Transaction Throughput**: 10,000+ TPS
-- **Response Times**: 
-  - Cache Hit: <5ms (95th percentile)
-  - Cache Miss: <50ms (95th percentile)
-  - Database Write: <100ms (95th percentile)
-
-### Scalability Metrics
-- **Horizontal Scaling**: Linear performance improvement
-- **Memory Usage**: <100MB per service instance
-- **CPU Usage**: <30% under normal load
-- **Database Connections**: Optimized pooling (max 200 connections)
-
-## 🚀 Deployment
-
-### Docker Deployment
-```bash
-# Production deployment
-docker-compose -f docker-compose.prod.yml up -d
-
-# Kubernetes deployment
-kubectl apply -f k8s/
-```
-
-### Environment Variables
-```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=wallet
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# Services
-WALLET_SERVICE_PORT=1314
-TRANSACTION_SERVICE_PORT=1315
-KONG_GATEWAY_PORT=8000
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Follow Go conventions and best practices
-- Maintain test coverage above 90%
-- Add comprehensive documentation
-- Ensure all CI checks pass
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- **Echo Framework**: High-performance HTTP router
-- **GORM**: Powerful ORM with excellent PostgreSQL support
-- **Kong Gateway**: Enterprise-grade API gateway
-- **Redis**: High-performance in-memory data store
-- **Go Community**: Excellent tooling and libraries
-
----
-
-**Project Status**: ✅ Production Ready  
-**Last Updated**: December 2024  
-**Test Coverage**: 93.3%  
-**Performance**: 10,000+ TPS  
-**Availability**: 99.9%  
 
 **Quick Links:**
-- 📖 [API Documentation](http://localhost:8000) (Kong Gateway)
-- 🔧 [Wallet Service Swagger](http://localhost:1314/swagger/index.html)
-- 💳 [Transaction Service Swagger](http://localhost:1315/swagger/index.html)
-- 📊 [Performance Metrics](REDIS_PERFORMANCE.md)
-- 🛡️ [Security Guide](KONG_API_DOCUMENTATION.md)
+- 🔧 [API Documentation Swagger](http://localhost:1314/swagger/index.html)
+- 💳 [Wallet Database Schema](services/wallets/DATABASE_SCHEMA.md)
+- 🛠️ [Transaction Database Schema](services/transactions/DATABASE_SCHEMA.md)
+- 📊 [Design Overview](design_patterns_concurrency.md)
+- 🛡️ [API Guide](KONG_API_DOCUMENTATION.md)
