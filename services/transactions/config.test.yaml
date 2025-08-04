@@ -1,0 +1,7 @@
+postgreSQL:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: transaction_test
+  sslmode: disable

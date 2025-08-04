@@ -1,19 +1,17 @@
 version: '3.8'
 
 services:
-  # Shared PostgreSQL Database
   postgres:
     image: postgres:15
-    container_name: shared_postgres
+    container_name: transactions_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: transaction
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -22,32 +20,11 @@ services:
     command: |
       postgres -c 'max_connections=200'
     networks:
-      - microservices-network
+      - transactions-network
 
-  # Wallet Service
-  wallet-app:
-    build:
-      context: ./services/wallets
-      dockerfile: Dockerfile
-      no_cache: true
-    container_name: wallet_app
-    ports:
-      - "8081:8081"
-      - "1314:1314"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - CONFIG_FILE=config.docker.yaml
-    command: ["/bin/sh", "-c", "./main migrate --config config.docker.yaml && ./main server --config config.docker.yaml"]
-    networks:
-      - microservices-network
-    restart: unless-stopped
-
-  # Transactions Service
   transactions-app:
     build:
-      context: ./services/transactions
+      context: .
       dockerfile: Dockerfile
       no_cache: true
     container_name: transactions_app
@@ -61,12 +38,12 @@ services:
       - CONFIG_FILE=config.docker.yaml
     command: ["/bin/sh", "-c", "./main migrate --config config.docker.yaml && ./main server --config config.docker.yaml"]
     networks:
-      - microservices-network
+      - transactions-network
     restart: unless-stopped
 
 volumes:
   postgres_data:
 
 networks:
-  microservices-network:
+  transactions-network:
     driver: bridge

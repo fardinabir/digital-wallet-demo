@@ -75,7 +75,7 @@ make migrate
 ### 4. Run Tests
 ```bash
 # Execute all backend tests
-make test-backend
+make test
 ```
 
 ### 5. Start the Application
@@ -94,8 +94,8 @@ Open your browser and navigate to:
 ## 📚 Documentation
 
 ### Database
-- **[Database Schema](DATABASE_SCHEMA.md)**: Complete schema documentation
-- **[Database Setup](DATABASE_SETUP.md)**: Setup and migration guide
+- **[Database Schema](services/wallets/DATABASE_SCHEMA.md)**: Complete schema documentation
+- **[Database Setup](services/wallets/DATABASE_SETUP.md)**: Setup and migration guide
 
 ### API Endpoints
 
@@ -135,7 +135,7 @@ curl -X POST http://localhost:8081/api/v1/wallets/transfer \
 
 ### Run All Tests
 ```bash
-make test-backend
+make test
 ```
 
 ### Test Coverage
@@ -172,7 +172,7 @@ make docker-clean     # Clean Docker volumes
 
 # Testing
 make test             # Run all tests
-make test-backend     # Run backend tests only
+make test     # Run backend tests only
 make test-coverage    # Run tests with coverage
 
 # Documentation
@@ -254,7 +254,7 @@ postgreSQL:
 - Foreign key relationships
 - Optimized indexes for queries
 
-For detailed schema information, see [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
+For detailed schema information, see [DATABASE_SCHEMA.md](services/wallets/DATABASE_SCHEMA.md).
 
 ## 🚀 Deployment
 
@@ -341,7 +341,7 @@ All API responses follow a consistent format:
    - Check test database configuration
    - Verify test data setup
 
-For detailed troubleshooting, see [DATABASE_SETUP.md](DATABASE_SETUP.md).
+For detailed troubleshooting, see [DATABASE_SETUP.md](services/wallets/DATABASE_SETUP.md).
 
 ## 📄 License
 

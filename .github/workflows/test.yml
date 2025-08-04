@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
     paths:
       - '**.go'
-      - 'go.mod'
-      - 'go.sum'
+      - '../../services/wallets/go.mod'
+      - '../../services/wallets/go.sum'
 
 jobs:
 
@@ -63,7 +63,7 @@ jobs:
           gotestsum --version
 
       - name: Run tests
-        run: make test-backend-ci
+        run: make test-ci
 
       - name: create report
         uses: k1LoW/octocov-action@v1

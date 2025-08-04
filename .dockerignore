@@ -19,7 +19,7 @@ DATABASE_*.md
 gitconfig
 
 # Docker
-Dockerfile
+services/wallets/Dockerfile
 docker-compose.yml
 .dockerignore
 
@@ -42,8 +42,8 @@ Thumbs.db
 coverage.out
 
 # Local config (keep docker config)
-config.yaml
-config.test.yaml
+services/wallets/config.yaml
+services/wallets/config.test.yaml
 
 # Assignment file
 *.pdf
