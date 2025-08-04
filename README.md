@@ -145,33 +145,13 @@ Detailed documentation is available for specific components:
 ## 🔧 Development Commands
 
 ```bash
-# Development
+# Start the system
 make dev              # Complete development setup
 make up               # Start all services
 make down             # Stop all services
-make restart          # Restart all services
-make clean            # Clean all containers and volumes
 
 # Testing
 make test             # Run all tests
-make test-ci          # Run CI tests with coverage
-make test-wallet      # Test wallet service only
-make test-transaction # Test transaction service only
-
-# Database
-make migrate          # Run all migrations
-make reset-db         # Reset all databases
-
-# Documentation
-make swagger          # Generate API documentation
-make swagger-wallet   # Generate wallet service docs
-make swagger-transaction # Generate transaction service docs
-
-# Health Checks
-make health           # Check all service health
-make redis-check      # Check Redis cache status
-make status           # Show container status
-make logs             # Show all service logs
 ```
 
 ## 🏦 Business Logic
