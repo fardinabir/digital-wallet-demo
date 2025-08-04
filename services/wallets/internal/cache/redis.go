@@ -10,6 +10,7 @@ import (
 
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/config"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/model"
+	"github.com/go-redis/redis/v8"
 )
 
 // RedisClient interface defines the Redis operations for transaction caching
@@ -30,6 +31,12 @@ var (
 	redisInstance RedisClient
 	redisOnce     sync.Once
 )
+
+// ResetRedisClient resets the singleton instance for testing
+func ResetRedisClient() {
+	redisOnce = sync.Once{}
+	redisInstance = nil
+}
 
 // NewRedisClient creates a new Redis client instance using singleton pattern
 func NewRedisClient() RedisClient {

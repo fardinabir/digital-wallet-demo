@@ -8,7 +8,7 @@ apiServer:
 
 postgreSQL:
   host: localhost
-  port: 5433
+  port: 5432
   user: postgres
   password: postgres
   dbname: transaction

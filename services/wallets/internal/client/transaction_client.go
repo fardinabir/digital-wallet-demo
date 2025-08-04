@@ -29,6 +29,12 @@ var (
 	once     sync.Once
 )
 
+// ResetClient resets the singleton instance for testing purposes
+func ResetClient() {
+	once = sync.Once{}
+	instance = nil
+}
+
 // NewTxnClient is a factory method that returns NewTransaction interface with singleton pattern
 func NewTxnClient() NewTransaction {
 	once.Do(func() {

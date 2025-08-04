@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/agiledragon/gomonkey/v2"
+	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/cache"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/client"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/db"
 	"github.com/fardinabir/digital-wallet-demo/services/wallets/internal/model"
@@ -206,11 +207,15 @@ func TestWalletHandler_Deposit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock transaction client for successful cases
+			// Reset client singleton and mock transaction client
+			client.ResetClient()
 			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
-			defer patches.Reset()
+			defer func() {
+				patches.Reset()
+				client.ResetClient()
+			}()
 
 			// Clean database before each test
 			clearDB(dbInstance, model.Wallet{})
@@ -336,11 +341,15 @@ func TestWalletHandler_Withdraw(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock transaction client for successful cases
+			// Reset client singleton and mock transaction client
+			client.ResetClient()
 			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
-			defer patches.Reset()
+			defer func() {
+				patches.Reset()
+				client.ResetClient()
+			}()
 
 			// Clean database before each test
 			clearDB(dbInstance, model.Wallet{})
@@ -484,11 +493,15 @@ func TestWalletHandler_Transfer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock transaction client for successful cases
+			// Reset client singleton and mock transaction client
+			client.ResetClient()
 			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
-			defer patches.Reset()
+			defer func() {
+				patches.Reset()
+				client.ResetClient()
+			}()
 
 			// Clean database before each test
 			clearDB(dbInstance, model.Wallet{})
@@ -590,11 +603,26 @@ func TestWalletHandler_Find(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Mock transaction client for successful cases
-			patches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
+			// Reset client singletons and mock both transaction and Redis clients
+			client.ResetClient()
+			cache.ResetRedisClient()
+			
+			// Mock transaction client
+			txnPatches := gomonkey.ApplyFunc(client.NewTxnClient, func() client.NewTransaction {
 				return &client.MockTransactionClient{}
 			})
-			defer patches.Reset()
+			
+			// Mock Redis client
+			redisPatches := gomonkey.ApplyFunc(cache.NewRedisClient, func() cache.RedisClient {
+				return cache.NewMockRedisClient()
+			})
+			
+			defer func() {
+				txnPatches.Reset()
+				redisPatches.Reset()
+				client.ResetClient()
+				cache.ResetRedisClient()
+			}()
 
 			// Clean database before each test
 			clearDB(dbInstance, model.Wallet{})
