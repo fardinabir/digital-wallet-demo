@@ -24,6 +24,23 @@ services:
     networks:
       - microservices-network
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - microservices-network
+
   # Wallet Service
   wallet-app:
     build:
@@ -36,6 +53,8 @@ services:
       - "1314:1314"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       - CONFIG_FILE=config.docker.yaml
@@ -63,6 +82,38 @@ services:
     networks:
       - microservices-network
     restart: unless-stopped
+
+  # Kong API Gateway
+  kong:
+    image: kong:3.6
+    container_name: kong
+    restart: always
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yaml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002, 0.0.0.0:8445 ssl
+      KONG_PLUGINS: bundled,rate-limiting
+      KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: resty.http
+    ports:
+      - "8000:8000"     # Proxy (HTTP)
+      - "8443:8443"     # Proxy (HTTPS)
+      - "8001:8001"     # Admin API (HTTP)
+      - "8444:8444"     # Admin API (HTTPS)
+      - "8002:8002"     # Dev Portal (HTTP)
+      - "8445:8445"     # Dev Portal (HTTPS)
+    volumes:
+      - ./kong.yaml:/usr/local/kong/declarative/kong.yaml
+    depends_on:
+      - wallet-app
+      - transactions-app
+    networks:
+      - microservices-network
 
 volumes:
   postgres_data:
