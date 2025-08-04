@@ -83,13 +83,13 @@ make test-backend
 # Start the server
 make run
 
-# Server will start on http://localhost:8080
+# Server will start on http://localhost:8081
 ```
 
 ### 6. Access API Documentation
 Open your browser and navigate to:
-- **Swagger UI**: http://localhost:8080/swagger/
-- **API Docs**: http://localhost:8080/docs/
+- **Swagger UI**: http://localhost:8081/swagger/
+- **API Docs**: http://localhost:8081/docs/
 
 ## 📚 Documentation
 
@@ -112,21 +112,21 @@ POST   /api/v1/wallets/transfer # Transfer between wallets
 
 **Create Wallet:**
 ```bash
-curl -X POST http://localhost:8080/api/v1/wallets \
+curl -X POST http://localhost:8081/api/v1/wallets \
   -H "Content-Type: application/json" \
   -d '{"user_id": "user-123", "acnt_type": "user"}'
 ```
 
 **Deposit Funds:**
 ```bash
-curl -X POST http://localhost:8080/api/v1/wallets/deposit \
+curl -X POST http://localhost:8081/api/v1/wallets/deposit \
   -H "Content-Type: application/json" \
   -d '{"user_id": "user-123", "amount": 10000}'
 ```
 
 **Transfer Funds:**
 ```bash
-curl -X POST http://localhost:8080/api/v1/wallets/transfer \
+curl -X POST http://localhost:8081/api/v1/wallets/transfer \
   -H "Content-Type: application/json" \
   -d '{"from_user_id": "user-123", "to_user_id": "user-456", "amount": 5000}'
 ```
@@ -185,7 +185,7 @@ make swagger          # Update Swagger specs
 **Development Config** (`config.yaml`):
 ```yaml
 server:
-  port: 8080
+  port: 8081
   host: localhost
 
 postgreSQL:
@@ -277,7 +277,7 @@ DB_PASSWORD=postgres
 DB_NAME=wallet
 
 # Server configuration
-SERVER_PORT=8080
+SERVER_PORT=8081
 SERVER_HOST=0.0.0.0
 ```
 

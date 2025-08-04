@@ -608,7 +608,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "0.0.1",
-	Host:             "localhost:8080",
+	Host:             "localhost:8081",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http"},
 	Title:            "digital-wallet-demonstration API",

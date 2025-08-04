@@ -29,7 +29,7 @@ services:
       no_cache: true
     container_name: wallet_app
     ports:
-      - "8080:8080"
+      - "8081:8081"
       - "1314:1314"
     depends_on:
       postgres:

@@ -20,7 +20,7 @@ func TestNewAPI(t *testing.T) {
 		{
 			name: "Valid configuration",
 			opts: WalletAPIServerOpts{
-				ListenPort: 8080,
+				ListenPort: 8081,
 				Config: model.Config{
 					PostgreSQL: model.PostgreSQL{
 						Host:     "localhost",
@@ -41,7 +41,7 @@ func TestNewAPI(t *testing.T) {
 		{
 			name: "Invalid database configuration",
 			opts: WalletAPIServerOpts{
-				ListenPort: 8080,
+				ListenPort: 8081,
 				Config: model.Config{
 					PostgreSQL: model.PostgreSQL{
 						Host:     "invalid-host",

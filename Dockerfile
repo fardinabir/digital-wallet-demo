@@ -15,5 +15,5 @@ COPY --from=builder /app/main .
 COPY --from=builder /app/config.docker.yaml .
 COPY --from=builder /app/migrations ./migrations/
 
-EXPOSE 8080
+EXPOSE 8081
 CMD ["./main", "server", "--config", "config.docker.yaml"]

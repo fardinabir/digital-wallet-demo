@@ -64,7 +64,7 @@ func initConfig() {
 	}
 
 	cfg = model.Config{
-		APIServer:     model.Server{Enable: true, Port: 8080},
+		APIServer:     model.Server{Enable: true, Port: 8081},
 		SwaggerServer: model.Server{Enable: false, Port: 1314},
 	}
 

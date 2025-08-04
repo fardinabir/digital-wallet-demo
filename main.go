@@ -10,7 +10,7 @@ import (
 // @version		0.0.1
 // @description	This is a server for digital-wallet-demonstration.
 // @license.name	Apache 2.0
-// @host			localhost:8080
+// @host			localhost:8081
 // @BasePath		/api/v1
 // @schemes		http
 func main() {

@@ -9,7 +9,7 @@ import (
 
 func TestNewSwagger(t *testing.T) {
 	opts := SwaggerServerOpts{
-		ListenPort: 8080,
+		ListenPort: 8081,
 	}
 
 	server := NewSwagger(opts)
